@@ -39,14 +39,15 @@ class KeyboardInterceptor {
             place: .headInsertEventTap,
             options: .defaultTap,
             eventsOfInterest: eventMask,
-            callback: { proxy, type, event, refcon -> Unmanaged<CGEvent>? in
-                // refcon is an unretained pointer to KeyboardInterceptor
+            callback: { proxy, type, event, userInfo -> Unmanaged<CGEvent>? in
+                // userInfo is an unretained pointer to KeyboardInterceptor
+                guard let userInfo = userInfo else { return Unmanaged.passUnretained(event) }
                 let interceptor = Unmanaged<KeyboardInterceptor>
-                    .fromOpaque(refcon!)
+                    .fromOpaque(userInfo)
                     .takeUnretainedValue()
                 return interceptor.handleKeyDown(proxy: proxy, type: type, event: event)
             },
-            refcon: Unmanaged.passUnretained(self).toOpaque()
+            userInfo: Unmanaged.passUnretained(self).toOpaque()
         )
 
         guard let tap = eventTap else {
