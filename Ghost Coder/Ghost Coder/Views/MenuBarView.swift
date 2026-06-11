@@ -60,7 +60,7 @@ struct MenuBarView: View {
         
         // Hide/show window accordingly
         if state.isGhostModeEnabled {
-            NSApp.windows.filter { $0.identifier?.rawValue == "mainWindow" }
+            NSApp.windows.filter { $0.title == "Ghost Coder" || $0.identifier?.rawValue == "mainWindow" }
                 .forEach { $0.orderOut(nil) }
         } else {
             showMainWindow()
@@ -69,7 +69,7 @@ struct MenuBarView: View {
 
     private func showMainWindow() {
         NSApp.activate(ignoringOtherApps: true)
-        NSApp.windows.filter { $0.identifier?.rawValue == "mainWindow" }
+        NSApp.windows.filter { $0.title == "Ghost Coder" || $0.identifier?.rawValue == "mainWindow" }
             .forEach { $0.makeKeyAndOrderFront(nil) }
     }
 
