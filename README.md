@@ -20,9 +20,9 @@ Keystrokes are injected as genuine Unicode inputs, meaning VS Code autocompletio
 
 ## Installation & Setup
 
-1. Go to the [Releases](https://github.com/mkshaonexe/Ghost-coder/releases) page and download `Ghost_Coder_macOS.zip`.
-2. Extract the file and drag `Ghost Coder.app` into your `/Applications` directory.
-3. Launch `Ghost Coder.app`.
+1. Go to the [Releases](https://github.com/mkshaonexe/Ghost-coder/releases) page and download `Ghost_Coder_macOS.dmg`.
+2. Double-click the DMG file to open it, and drag `Ghost Coder.app` into your `/Applications` folder.
+3. Launch `Ghost Coder.app` from your Applications.
 
 ### ⚠️ Required Accessibility Permissions
 Because Ghost Coder hooks keyboard input using `CGEventTap` to replace keystrokes, macOS requires you to grant **Accessibility permissions**:
