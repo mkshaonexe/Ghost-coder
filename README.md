@@ -24,6 +24,26 @@ Keystrokes are injected as genuine Unicode inputs, meaning VS Code autocompletio
 2. Double-click the DMG file to open it, and drag `Ghost Coder.app` into your `/Applications` folder.
 3. Launch `Ghost Coder.app` from your Applications.
 
+### 🔒 Bypassing macOS Gatekeeper (Security Warning)
+Because Ghost Coder is signed with a local developer certificate and is not notarized through Apple's paid Developer Program, macOS will show a security warning ("Apple could not verify Ghost Coder...") when downloaded from the internet.
+
+To run the application, choose one of these simple fixes:
+
+- **Command Line Fix (Recommended)**: Open your **Terminal** app and run:
+  ```bash
+  xattr -cr /Applications/Ghost\ Coder.app
+  ```
+  This immediately removes the internet quarantine flag applied by macOS.
+  
+- **System Settings Alternative**:
+  - Open **System Settings** ➔ **Privacy & Security**.
+  - Scroll down to the **Security** section.
+  - Click the **Open Anyway** button next to the Ghost Coder prompt.
+  
+- **Right-Click Alternative**:
+  - Right-click (or Control-click) `Ghost Coder.app` in your Applications folder and choose **Open**.
+  - Click **Open** on the confirmation pop-up.
+
 ### ⚠️ Required Accessibility Permissions
 Because Ghost Coder hooks keyboard input using `CGEventTap` to replace keystrokes, macOS requires you to grant **Accessibility permissions**:
 - On first launch, macOS will display a prompt asking you to authorize Ghost Coder.
