@@ -17,7 +17,7 @@ struct SourceFileSection: View {
             Text("SOURCE FILE")
                 .font(.system(.caption, design: .rounded))
                 .fontWeight(.bold)
-                .foregroundColor(.secondary)
+                .foregroundStyle(Color.white.opacity(0.6))
 
             if state.isSourceLoaded {
                 loadedView
@@ -40,23 +40,23 @@ struct SourceFileSection: View {
                 VStack(spacing: 4) {
                     Text("Drag & drop source file here")
                         .font(.headline)
-                        .foregroundColor(.primary)
+                        .foregroundStyle(.white)
                     
                     Text("or click to browse files")
                         .font(.subheadline)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(Color.white.opacity(0.68))
                 }
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 32)
             .background(
                 RoundedRectangle(cornerRadius: 12)
-                    .fill(Color(NSColor.controlBackgroundColor).opacity(0.5))
+                    .fill(Color.white.opacity(0.08))
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
                     .strokeBorder(
-                        isTargeted ? Color.accentColor : Color.secondary.opacity(0.3),
+                        isTargeted ? Color.cyan : Color.white.opacity(0.22),
                         style: StrokeStyle(lineWidth: 2, dash: [6, 4])
                     )
             )
@@ -94,13 +94,14 @@ struct SourceFileSection: View {
                 Text(state.sourceFileName)
                     .font(.headline)
                     .lineLimit(1)
+                    .foregroundStyle(.white)
                 
                 HStack(spacing: 12) {
                     Label("\(state.sourceCode.count) chars", systemImage: "character")
                     Label("\(lineCount) lines", systemImage: "line.horizontal.3")
                 }
                 .font(.caption)
-                .foregroundColor(.secondary)
+                .foregroundStyle(Color.white.opacity(0.66))
             }
 
             Spacer()
@@ -124,16 +125,26 @@ struct SourceFileSection: View {
                 }
                 .buttonStyle(.bordered)
                 .disabled(state.currentIndex == 0)
+
+                Button(role: .destructive, action: {
+                    withAnimation {
+                        state.clearSourceFile()
+                    }
+                }) {
+                    Image(systemName: "trash")
+                        .help("Remove Loaded File")
+                }
+                .buttonStyle(.bordered)
             }
         }
         .padding(12)
         .background(
             RoundedRectangle(cornerRadius: 12)
-                .fill(Color(NSColor.controlBackgroundColor).opacity(0.5))
+                .fill(Color.white.opacity(0.08))
         )
         .overlay(
             RoundedRectangle(cornerRadius: 12)
-                .stroke(Color.secondary.opacity(0.2), lineWidth: 1)
+                .stroke(Color.white.opacity(0.12), lineWidth: 1)
         )
     }
 

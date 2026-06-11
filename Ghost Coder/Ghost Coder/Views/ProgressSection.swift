@@ -16,67 +16,65 @@ struct ProgressSection: View {
                 Text("TYPING PROGRESS")
                     .font(.system(.caption, design: .rounded))
                     .fontWeight(.bold)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(Color.white.opacity(0.6))
                 
                 Spacer()
                 
                 Text(percentString)
                     .font(.system(.subheadline, design: .monospaced))
                     .fontWeight(.bold)
-                    .foregroundColor(.accentColor)
+                    .foregroundStyle(.white)
             }
 
             VStack(spacing: 12) {
-                // Custom Premium Progress Bar
                 GeometryReader { geo in
                     ZStack(alignment: .leading) {
                         Capsule()
-                            .fill(Color.secondary.opacity(0.15))
+                            .fill(Color.white.opacity(0.12))
                             .frame(height: 8)
                         
                         Capsule()
                             .fill(
                                 LinearGradient(
-                                    colors: [.accentColor, Color.blue],
+                                    colors: [Color.green, Color.cyan],
                                     startPoint: .leading,
                                     endPoint: .trailing
                                 )
                             )
                             .frame(width: geo.size.width * CGFloat(state.progress), height: 8)
-                            .shadow(color: .accentColor.opacity(0.4), radius: 4, x: 0, y: 2)
+                            .shadow(color: Color.cyan.opacity(0.32), radius: 6, x: 0, y: 2)
                             .animation(.spring(response: 0.4, dampingFraction: 0.75), value: state.progress)
                     }
                 }
                 .frame(height: 8)
                 
-                // Character counters
                 HStack {
-                    Text("\(state.currentIndex) / \(state.sourceCode.count) characters")
+                    Text("\(state.currentIndex) / \(state.completionCount) characters")
                         .font(.subheadline)
-                        .foregroundColor(.primary)
+                        .foregroundStyle(.white)
                     
                     Spacer()
                     
                     if state.remainingCharCount > 0 {
                         Text("\(state.remainingCharCount) remaining")
                             .font(.caption)
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(Color.white.opacity(0.66))
                     } else {
                         Text("Completed")
                             .font(.caption)
                             .fontWeight(.bold)
-                            .foregroundColor(.green)
+                            .foregroundStyle(Color.green)
                     }
                 }
             }
             .padding(12)
             .background(
                 RoundedRectangle(cornerRadius: 12)
-                    .fill(Color(NSColor.controlBackgroundColor).opacity(0.5))
+                    .fill(Color.white.opacity(0.08))
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
-                    .stroke(Color.secondary.opacity(0.2), lineWidth: 1)
+                    .stroke(Color.white.opacity(0.12), lineWidth: 1)
             )
         }
     }

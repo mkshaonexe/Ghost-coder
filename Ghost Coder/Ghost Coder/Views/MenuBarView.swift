@@ -11,47 +11,37 @@ struct MenuBarView: View {
     @ObservedObject var state: GhostState
 
     var body: some View {
-        Group {
+        VStack(alignment: .leading, spacing: 10) {
             Text("Ghost Coder")
+                .font(.system(size: 14, weight: .bold, design: .rounded))
             
-            Text("Status: \(statusText)")
+            Text(state.statusLabel)
+                .font(.system(size: 12, weight: .semibold, design: .rounded))
+
+            Text(state.statusDetail)
+                .font(.system(size: 11, weight: .medium, design: .rounded))
+                .foregroundStyle(.secondary)
             
             Divider()
             
             Button(action: toggleGhostMode) {
-                Text(state.isGhostModeEnabled ? "Pause Ghost Mode" : "Start Ghost Mode")
+                Label(state.isGhostModeEnabled ? "Pause Ghost Mode" : "Start Ghost Mode", systemImage: state.isGhostModeEnabled ? "pause.fill" : "play.fill")
             }
             .keyboardShortcut("g", modifiers: [.command, .shift])
+            .disabled(!state.isSourceLoaded)
             
-            Button(action: showMainWindow) {
-                Text("Show Window")
+            Button(action: toggleMainWindow) {
+                Label(isMainWindowVisible ? "Hide Window" : "Show Window", systemImage: isMainWindowVisible ? "eye.slash" : "eye")
             }
             
             Divider()
             
             Button(role: .destructive, action: quitApp) {
-                Text("Quit Ghost Coder")
+                Label("Quit Ghost Coder", systemImage: "power")
             }
             .keyboardShortcut("q", modifiers: [.command])
         }
-    }
-
-    private var statusText: String {
-        if state.isActiveCached {
-            return "Active"
-        } else if state.isGhostModeEnabled {
-            if !state.isSourceLoaded {
-                return "Paused: No File"
-            } else if !state.isIDEFocused {
-                return "Paused: IDE Focus Needed"
-            } else if !state.isFolderScopeActive {
-                return "Paused: Workspace Mismatch"
-            } else {
-                return "Paused"
-            }
-        } else {
-            return "Inactive"
-        }
+        .padding(.vertical, 4)
     }
 
     private func toggleGhostMode() {
@@ -60,6 +50,21 @@ struct MenuBarView: View {
         
         // Hide/show window accordingly
         if state.isGhostModeEnabled {
+            NSApp.windows.filter { $0.title == "Ghost Coder" || $0.identifier?.rawValue == "mainWindow" }
+                .forEach { $0.orderOut(nil) }
+        } else {
+            showMainWindow()
+        }
+    }
+
+    private var isMainWindowVisible: Bool {
+        NSApp.windows.contains { window in
+            (window.title == "Ghost Coder" || window.identifier?.rawValue == "mainWindow") && window.isVisible
+        }
+    }
+
+    private func toggleMainWindow() {
+        if isMainWindowVisible {
             NSApp.windows.filter { $0.title == "Ghost Coder" || $0.identifier?.rawValue == "mainWindow" }
                 .forEach { $0.orderOut(nil) }
         } else {

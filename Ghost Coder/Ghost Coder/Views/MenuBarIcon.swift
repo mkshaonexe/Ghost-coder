@@ -12,17 +12,36 @@ struct MenuBarIcon: View {
 
     var body: some View {
         Image(systemName: iconName)
+            .symbolRenderingMode(.hierarchical)
+            .foregroundStyle(iconColor)
+            .help(state.statusLabel)
     }
 
     private var iconName: String {
-        if !state.isSourceLoaded {
+        switch state.operationalState {
+        case .inactive:
             return "circle"
-        } else if !state.isGhostModeEnabled {
-            return "play.circle"
-        } else if state.isActiveCached {
-            return "play.circle.fill"
-        } else {
+        case .pausedNoFile:
+            return "exclamationmark.circle"
+        case .pausedReady, .pausedFocusNeeded, .pausedWorkspaceMismatch:
             return "pause.circle.fill"
+        case .active:
+            return "play.circle.fill"
+        case .complete:
+            return "checkmark.circle.fill"
+        }
+    }
+
+    private var iconColor: Color {
+        switch state.operationalState {
+        case .active:
+            return .green
+        case .pausedNoFile, .pausedReady, .pausedFocusNeeded, .pausedWorkspaceMismatch:
+            return .orange
+        case .complete:
+            return .cyan
+        case .inactive:
+            return .gray
         }
     }
 }

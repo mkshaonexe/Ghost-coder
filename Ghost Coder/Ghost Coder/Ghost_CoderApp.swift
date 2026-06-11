@@ -13,21 +13,27 @@ struct Ghost_CoderApp: App {
     private var interceptor: KeyboardInterceptor
     private var windowMonitor: WindowMonitor
     private var hotkey: GlobalHotkey
+    private var mainWindowController: MainWindowController
 
     init() {
         let s = GhostState()
         let i = KeyboardInterceptor(state: s)
         let w = WindowMonitor(state: s)
         let h = GlobalHotkey(state: s, interceptor: i)
+        let m = MainWindowController(state: s)
         
         _state = StateObject(wrappedValue: s)
         self.interceptor = i
         self.windowMonitor = w
         self.hotkey = h
+        self.mainWindowController = m
         
         i.start()
         w.start()
         h.register()
+        DispatchQueue.main.async {
+            m.show()
+        }
     }
 
     var body: some Scene {
@@ -37,11 +43,5 @@ struct Ghost_CoderApp: App {
             MenuBarIcon(state: state)
         }
         .menuBarExtraStyle(.menu)
-
-        Window("Ghost Coder", id: "mainWindow") {
-            ContentView(state: state)
-        }
-        .windowResizability(.contentSize)
-        .defaultPosition(.center)
     }
 }

@@ -20,7 +20,7 @@ struct StatusPill: View {
             Text(statusText)
                 .font(.system(.subheadline, design: .rounded))
                 .fontWeight(.medium)
-                .foregroundColor(.secondary)
+                .foregroundStyle(Color.white.opacity(0.82))
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 5)
@@ -36,31 +36,20 @@ struct StatusPill: View {
     }
 
     private var statusColor: Color {
-        if state.isActiveCached {
+        switch state.operationalState {
+        case .active:
             return Color.green
-        } else if state.isGhostModeEnabled {
+        case .pausedNoFile, .pausedFocusNeeded, .pausedWorkspaceMismatch, .pausedReady:
             return Color.orange
-        } else {
+        case .complete:
+            return Color.cyan
+        case .inactive:
             return Color.gray
         }
     }
 
     private var statusText: String {
-        if state.isActiveCached {
-            return "Active"
-        } else if state.isGhostModeEnabled {
-            if !state.isSourceLoaded {
-                return "Paused: No File"
-            } else if !state.isIDEFocused {
-                return "Paused: IDE Focus Needed"
-            } else if !state.isFolderScopeActive {
-                return "Paused: Workspace Mismatch"
-            } else {
-                return "Paused"
-            }
-        } else {
-            return "Inactive"
-        }
+        state.statusLabel
     }
 }
 

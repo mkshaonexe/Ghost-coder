@@ -33,6 +33,16 @@ enum IDETarget: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
+enum GhostOperationalState {
+    case inactive
+    case active
+    case pausedNoFile
+    case pausedFocusNeeded
+    case pausedWorkspaceMismatch
+    case pausedReady
+    case complete
+}
+
 class GhostState: ObservableObject {
 
     // MARK: - Configuration (user-set, persisted)
@@ -71,6 +81,74 @@ class GhostState: ObservableObject {
         !sourceCode.isEmpty
     }
 
+    var completionCount: Int {
+        sourceCode.count
+    }
+
+    var operationalState: GhostOperationalState {
+        if sourceCode.isEmpty {
+            return isGhostModeEnabled ? .pausedNoFile : .inactive
+        }
+
+        if currentIndex >= sourceCode.count {
+            return .complete
+        }
+
+        if isActiveCached {
+            return .active
+        }
+
+        if isGhostModeEnabled {
+            if !isIDEFocused {
+                return .pausedFocusNeeded
+            }
+            if !isFolderScopeActive {
+                return .pausedWorkspaceMismatch
+            }
+            return .pausedReady
+        }
+
+        return .inactive
+    }
+
+    var statusLabel: String {
+        switch operationalState {
+        case .inactive:
+            return "Inactive"
+        case .active:
+            return "Active"
+        case .pausedNoFile:
+            return "Paused: No File"
+        case .pausedFocusNeeded:
+            return "Paused: IDE Focus Needed"
+        case .pausedWorkspaceMismatch:
+            return "Paused: Workspace Mismatch"
+        case .pausedReady:
+            return "Paused"
+        case .complete:
+            return "Completed"
+        }
+    }
+
+    var statusDetail: String {
+        switch operationalState {
+        case .inactive:
+            return "Load a source file and arm Ghost Mode when you're ready."
+        case .active:
+            return "Interception is live for the current target and workspace."
+        case .pausedNoFile:
+            return "Add a source file before turning Ghost Mode loose."
+        case .pausedFocusNeeded:
+            return "Bring the selected IDE to the front to continue typing."
+        case .pausedWorkspaceMismatch:
+            return "Open a window from the selected workspace folder to continue."
+        case .pausedReady:
+            return "Ghost Mode is armed and waiting for the next typing context."
+        case .complete:
+            return "Every character from the loaded source has been injected."
+        }
+    }
+
     // MARK: - State Updates
     func updateCachedActiveState() {
         // Called on main thread by WindowMonitor every 150ms
@@ -86,6 +164,14 @@ class GhostState: ObservableObject {
         sourceCode = content
         sourceFileName = url.lastPathComponent
         isGhostModeEnabled = false // Auto-pause
+        reset()
+        updateCachedActiveState()
+    }
+
+    func clearSourceFile() {
+        sourceCode = ""
+        sourceFileName = ""
+        isGhostModeEnabled = false
         reset()
         updateCachedActiveState()
     }

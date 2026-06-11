@@ -15,14 +15,13 @@ struct TargetSection: View {
             Text("ACTIVATION SCOPE")
                 .font(.system(.caption, design: .rounded))
                 .fontWeight(.bold)
-                .foregroundColor(.secondary)
+                .foregroundStyle(Color.white.opacity(0.6))
 
             VStack(spacing: 12) {
-                // IDE Target Selector
                 HStack {
                     Text("Target IDE")
                         .font(.body)
-                        .foregroundColor(.primary)
+                        .foregroundStyle(.white)
                     
                     Spacer()
                     
@@ -41,18 +40,17 @@ struct TargetSection: View {
                 
                 Divider()
                 
-                // Workspace Folder Constraint
                 VStack(alignment: .leading, spacing: 6) {
                     HStack {
                         Text("Workspace Folder Path")
                             .font(.body)
-                            .foregroundColor(.primary)
+                            .foregroundStyle(.white)
                         
                         Spacer()
                         
                         Text("(Optional)")
                             .font(.caption)
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(Color.white.opacity(0.58))
                     }
                     
                     HStack(spacing: 8) {
@@ -70,17 +68,36 @@ struct TargetSection: View {
                         .help("Select Workspace Folder")
                     }
                 }
+
+                HStack(spacing: 8) {
+                    Image(systemName: state.isFolderScopeActive ? "scope" : "exclamationmark.triangle.fill")
+                        .foregroundStyle(state.isFolderScopeActive ? Color.green : Color.orange)
+                    Text(scopeStatusText)
+                        .font(.system(.caption, design: .rounded))
+                        .foregroundStyle(Color.white.opacity(0.72))
+                    Spacer()
+                }
             }
             .padding(12)
             .background(
                 RoundedRectangle(cornerRadius: 12)
-                    .fill(Color(NSColor.controlBackgroundColor).opacity(0.5))
+                    .fill(Color.white.opacity(0.08))
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
-                    .stroke(Color.secondary.opacity(0.2), lineWidth: 1)
+                    .stroke(Color.white.opacity(0.12), lineWidth: 1)
             )
         }
+    }
+
+    private var scopeStatusText: String {
+        if state.workspaceFolderPath.isEmpty {
+            return "No folder filter applied. Ghost Mode can operate in any matching target window."
+        }
+        if state.isFolderScopeActive {
+            return "Workspace filter matches the current window."
+        }
+        return "The frontmost window title does not match the selected workspace folder."
     }
 
     private func selectFolder() {

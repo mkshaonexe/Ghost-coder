@@ -1,0 +1,91 @@
+{
+  "" : {
+    "const-values" : "/Users/mkshaon/playground/Ghost coder/build/DerivedData/Build/Intermediates.noindex/Ghost Coder.build/Release/Ghost Coder.build/Objects-normal/arm64/Ghost Coder-primary.swiftconstvalues",
+    "dependencies" : "/Users/mkshaon/playground/Ghost coder/build/DerivedData/Build/Intermediates.noindex/Ghost Coder.build/Release/Ghost Coder.build/Objects-normal/arm64/Ghost Coder-primary.d",
+    "diagnostics" : "/Users/mkshaon/playground/Ghost coder/build/DerivedData/Build/Intermediates.noindex/Ghost Coder.build/Release/Ghost Coder.build/Objects-normal/arm64/Ghost Coder-primary.dia",
+    "emit-module-dependencies" : "/Users/mkshaon/playground/Ghost coder/build/DerivedData/Build/Intermediates.noindex/Ghost Coder.build/Release/Ghost Coder.build/Objects-normal/arm64/Ghost Coder-primary-emit-module.d",
+    "emit-module-diagnostics" : "/Users/mkshaon/playground/Ghost coder/build/DerivedData/Build/Intermediates.noindex/Ghost Coder.build/Release/Ghost Coder.build/Objects-normal/arm64/Ghost Coder-primary-emit-module.dia",
+    "pch" : "/Users/mkshaon/playground/Ghost coder/build/DerivedData/Build/Intermediates.noindex/Ghost Coder.build/Release/Ghost Coder.build/Objects-normal/arm64/Ghost Coder-primary-Bridging-header.pch",
+    "swift-dependencies" : "/Users/mkshaon/playground/Ghost coder/build/DerivedData/Build/Intermediates.noindex/Ghost Coder.build/Release/Ghost Coder.build/Objects-normal/arm64/Ghost Coder-primary.swiftdeps"
+  },
+  "/Users/mkshaon/playground/Ghost coder/Ghost Coder/Ghost Coder/ContentView.swift" : {
+    "index-unit-output-path" : "/Ghost Coder.build/Release/Ghost Coder.build/Objects-normal/arm64/ContentView.o",
+    "llvm-bc" : "/Users/mkshaon/playground/Ghost coder/build/DerivedData/Build/Intermediates.noindex/Ghost Coder.build/Release/Ghost Coder.build/Objects-normal/arm64/ContentView.bc",
+    "object" : "/Users/mkshaon/playground/Ghost coder/build/DerivedData/Build/Intermediates.noindex/Ghost Coder.build/Release/Ghost Coder.build/Objects-normal/arm64/ContentView.o"
+  },
+  "/Users/mkshaon/playground/Ghost coder/Ghost Coder/Ghost Coder/Engine/CharacterInjector.swift" : {
+    "index-unit-output-path" : "/Ghost Coder.build/Release/Ghost Coder.build/Objects-normal/arm64/CharacterInjector.o",
+    "llvm-bc" : "/Users/mkshaon/playground/Ghost coder/build/DerivedData/Build/Intermediates.noindex/Ghost Coder.build/Release/Ghost Coder.build/Objects-normal/arm64/CharacterInjector.bc",
+    "object" : "/Users/mkshaon/playground/Ghost coder/build/DerivedData/Build/Intermediates.noindex/Ghost Coder.build/Release/Ghost Coder.build/Objects-normal/arm64/CharacterInjector.o"
+  },
+  "/Users/mkshaon/playground/Ghost coder/Ghost Coder/Ghost Coder/Engine/KeyboardInterceptor.swift" : {
+    "index-unit-output-path" : "/Ghost Coder.build/Release/Ghost Coder.build/Objects-normal/arm64/KeyboardInterceptor.o",
+    "llvm-bc" : "/Users/mkshaon/playground/Ghost coder/build/DerivedData/Build/Intermediates.noindex/Ghost Coder.build/Release/Ghost Coder.build/Objects-normal/arm64/KeyboardInterceptor.bc",
+    "object" : "/Users/mkshaon/playground/Ghost coder/build/DerivedData/Build/Intermediates.noindex/Ghost Coder.build/Release/Ghost Coder.build/Objects-normal/arm64/KeyboardInterceptor.o"
+  },
+  "/Users/mkshaon/playground/Ghost coder/Ghost Coder/Ghost Coder/Engine/WindowMonitor.swift" : {
+    "index-unit-output-path" : "/Ghost Coder.build/Release/Ghost Coder.build/Objects-normal/arm64/WindowMonitor.o",
+    "llvm-bc" : "/Users/mkshaon/playground/Ghost coder/build/DerivedData/Build/Intermediates.noindex/Ghost Coder.build/Release/Ghost Coder.build/Objects-normal/arm64/WindowMonitor.bc",
+    "object" : "/Users/mkshaon/playground/Ghost coder/build/DerivedData/Build/Intermediates.noindex/Ghost Coder.build/Release/Ghost Coder.build/Objects-normal/arm64/WindowMonitor.o"
+  },
+  "/Users/mkshaon/playground/Ghost coder/Ghost Coder/Ghost Coder/Ghost_CoderApp.swift" : {
+    "index-unit-output-path" : "/Ghost Coder.build/Release/Ghost Coder.build/Objects-normal/arm64/Ghost_CoderApp.o",
+    "llvm-bc" : "/Users/mkshaon/playground/Ghost coder/build/DerivedData/Build/Intermediates.noindex/Ghost Coder.build/Release/Ghost Coder.build/Objects-normal/arm64/Ghost_CoderApp.bc",
+    "object" : "/Users/mkshaon/playground/Ghost coder/build/DerivedData/Build/Intermediates.noindex/Ghost Coder.build/Release/Ghost Coder.build/Objects-normal/arm64/Ghost_CoderApp.o"
+  },
+  "/Users/mkshaon/playground/Ghost coder/Ghost Coder/Ghost Coder/HotKey/GlobalHotkey.swift" : {
+    "index-unit-output-path" : "/Ghost Coder.build/Release/Ghost Coder.build/Objects-normal/arm64/GlobalHotkey.o",
+    "llvm-bc" : "/Users/mkshaon/playground/Ghost coder/build/DerivedData/Build/Intermediates.noindex/Ghost Coder.build/Release/Ghost Coder.build/Objects-normal/arm64/GlobalHotkey.bc",
+    "object" : "/Users/mkshaon/playground/Ghost coder/build/DerivedData/Build/Intermediates.noindex/Ghost Coder.build/Release/Ghost Coder.build/Objects-normal/arm64/GlobalHotkey.o"
+  },
+  "/Users/mkshaon/playground/Ghost coder/Ghost Coder/Ghost Coder/MainWindowController.swift" : {
+    "index-unit-output-path" : "/Ghost Coder.build/Release/Ghost Coder.build/Objects-normal/arm64/MainWindowController.o",
+    "llvm-bc" : "/Users/mkshaon/playground/Ghost coder/build/DerivedData/Build/Intermediates.noindex/Ghost Coder.build/Release/Ghost Coder.build/Objects-normal/arm64/MainWindowController.bc",
+    "object" : "/Users/mkshaon/playground/Ghost coder/build/DerivedData/Build/Intermediates.noindex/Ghost Coder.build/Release/Ghost Coder.build/Objects-normal/arm64/MainWindowController.o"
+  },
+  "/Users/mkshaon/playground/Ghost coder/Ghost Coder/Ghost Coder/Models/GhostState.swift" : {
+    "index-unit-output-path" : "/Ghost Coder.build/Release/Ghost Coder.build/Objects-normal/arm64/GhostState.o",
+    "llvm-bc" : "/Users/mkshaon/playground/Ghost coder/build/DerivedData/Build/Intermediates.noindex/Ghost Coder.build/Release/Ghost Coder.build/Objects-normal/arm64/GhostState.bc",
+    "object" : "/Users/mkshaon/playground/Ghost coder/build/DerivedData/Build/Intermediates.noindex/Ghost Coder.build/Release/Ghost Coder.build/Objects-normal/arm64/GhostState.o"
+  },
+  "/Users/mkshaon/playground/Ghost coder/Ghost Coder/Ghost Coder/Views/MenuBarIcon.swift" : {
+    "index-unit-output-path" : "/Ghost Coder.build/Release/Ghost Coder.build/Objects-normal/arm64/MenuBarIcon.o",
+    "llvm-bc" : "/Users/mkshaon/playground/Ghost coder/build/DerivedData/Build/Intermediates.noindex/Ghost Coder.build/Release/Ghost Coder.build/Objects-normal/arm64/MenuBarIcon.bc",
+    "object" : "/Users/mkshaon/playground/Ghost coder/build/DerivedData/Build/Intermediates.noindex/Ghost Coder.build/Release/Ghost Coder.build/Objects-normal/arm64/MenuBarIcon.o"
+  },
+  "/Users/mkshaon/playground/Ghost coder/Ghost Coder/Ghost Coder/Views/MenuBarView.swift" : {
+    "index-unit-output-path" : "/Ghost Coder.build/Release/Ghost Coder.build/Objects-normal/arm64/MenuBarView.o",
+    "llvm-bc" : "/Users/mkshaon/playground/Ghost coder/build/DerivedData/Build/Intermediates.noindex/Ghost Coder.build/Release/Ghost Coder.build/Objects-normal/arm64/MenuBarView.bc",
+    "object" : "/Users/mkshaon/playground/Ghost coder/build/DerivedData/Build/Intermediates.noindex/Ghost Coder.build/Release/Ghost Coder.build/Objects-normal/arm64/MenuBarView.o"
+  },
+  "/Users/mkshaon/playground/Ghost coder/Ghost Coder/Ghost Coder/Views/ModeSection.swift" : {
+    "index-unit-output-path" : "/Ghost Coder.build/Release/Ghost Coder.build/Objects-normal/arm64/ModeSection.o",
+    "llvm-bc" : "/Users/mkshaon/playground/Ghost coder/build/DerivedData/Build/Intermediates.noindex/Ghost Coder.build/Release/Ghost Coder.build/Objects-normal/arm64/ModeSection.bc",
+    "object" : "/Users/mkshaon/playground/Ghost coder/build/DerivedData/Build/Intermediates.noindex/Ghost Coder.build/Release/Ghost Coder.build/Objects-normal/arm64/ModeSection.o"
+  },
+  "/Users/mkshaon/playground/Ghost coder/Ghost Coder/Ghost Coder/Views/ProgressSection.swift" : {
+    "index-unit-output-path" : "/Ghost Coder.build/Release/Ghost Coder.build/Objects-normal/arm64/ProgressSection.o",
+    "llvm-bc" : "/Users/mkshaon/playground/Ghost coder/build/DerivedData/Build/Intermediates.noindex/Ghost Coder.build/Release/Ghost Coder.build/Objects-normal/arm64/ProgressSection.bc",
+    "object" : "/Users/mkshaon/playground/Ghost coder/build/DerivedData/Build/Intermediates.noindex/Ghost Coder.build/Release/Ghost Coder.build/Objects-normal/arm64/ProgressSection.o"
+  },
+  "/Users/mkshaon/playground/Ghost coder/Ghost Coder/Ghost Coder/Views/SourceFileSection.swift" : {
+    "index-unit-output-path" : "/Ghost Coder.build/Release/Ghost Coder.build/Objects-normal/arm64/SourceFileSection.o",
+    "llvm-bc" : "/Users/mkshaon/playground/Ghost coder/build/DerivedData/Build/Intermediates.noindex/Ghost Coder.build/Release/Ghost Coder.build/Objects-normal/arm64/SourceFileSection.bc",
+    "object" : "/Users/mkshaon/playground/Ghost coder/build/DerivedData/Build/Intermediates.noindex/Ghost Coder.build/Release/Ghost Coder.build/Objects-normal/arm64/SourceFileSection.o"
+  },
+  "/Users/mkshaon/playground/Ghost coder/Ghost Coder/Ghost Coder/Views/StatusPill.swift" : {
+    "index-unit-output-path" : "/Ghost Coder.build/Release/Ghost Coder.build/Objects-normal/arm64/StatusPill.o",
+    "llvm-bc" : "/Users/mkshaon/playground/Ghost coder/build/DerivedData/Build/Intermediates.noindex/Ghost Coder.build/Release/Ghost Coder.build/Objects-normal/arm64/StatusPill.bc",
+    "object" : "/Users/mkshaon/playground/Ghost coder/build/DerivedData/Build/Intermediates.noindex/Ghost Coder.build/Release/Ghost Coder.build/Objects-normal/arm64/StatusPill.o"
+  },
+  "/Users/mkshaon/playground/Ghost coder/Ghost Coder/Ghost Coder/Views/TargetSection.swift" : {
+    "index-unit-output-path" : "/Ghost Coder.build/Release/Ghost Coder.build/Objects-normal/arm64/TargetSection.o",
+    "llvm-bc" : "/Users/mkshaon/playground/Ghost coder/build/DerivedData/Build/Intermediates.noindex/Ghost Coder.build/Release/Ghost Coder.build/Objects-normal/arm64/TargetSection.bc",
+    "object" : "/Users/mkshaon/playground/Ghost coder/build/DerivedData/Build/Intermediates.noindex/Ghost Coder.build/Release/Ghost Coder.build/Objects-normal/arm64/TargetSection.o"
+  },
+  "/Users/mkshaon/playground/Ghost coder/build/DerivedData/Build/Intermediates.noindex/Ghost Coder.build/Release/Ghost Coder.build/DerivedSources/GeneratedAssetSymbols.swift" : {
+    "index-unit-output-path" : "/Ghost Coder.build/Release/Ghost Coder.build/Objects-normal/arm64/GeneratedAssetSymbols.o",
+    "llvm-bc" : "/Users/mkshaon/playground/Ghost coder/build/DerivedData/Build/Intermediates.noindex/Ghost Coder.build/Release/Ghost Coder.build/Objects-normal/arm64/GeneratedAssetSymbols.bc",
+    "object" : "/Users/mkshaon/playground/Ghost coder/build/DerivedData/Build/Intermediates.noindex/Ghost Coder.build/Release/Ghost Coder.build/Objects-normal/arm64/GeneratedAssetSymbols.o"
+  }
+}

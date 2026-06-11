@@ -64,15 +64,29 @@ class WindowMonitor {
     private func checkFolderScope(app: NSRunningApplication) -> Bool {
         let axApp = AXUIElementCreateApplication(app.processIdentifier)
 
-        var windowsRef: AnyObject?
-        guard AXUIElementCopyAttributeValue(axApp, kAXWindowsAttribute as CFString, &windowsRef) == .success,
-              let windows = windowsRef as? [AXUIElement],
-              let frontWindow = windows.first else {
-            return false
+        var focusedWindowRef: AnyObject?
+        let focusedWindowResult = AXUIElementCopyAttributeValue(
+            axApp,
+            kAXFocusedWindowAttribute as CFString,
+            &focusedWindowRef
+        )
+
+        let windowElement: AXUIElement?
+        if focusedWindowResult == .success, let focusedWindow = focusedWindowRef as! AXUIElement? {
+            windowElement = focusedWindow
+        } else {
+            var windowsRef: AnyObject?
+            guard AXUIElementCopyAttributeValue(axApp, kAXWindowsAttribute as CFString, &windowsRef) == .success,
+                  let windows = windowsRef as? [AXUIElement],
+                  let frontWindow = windows.first else {
+                return false
+            }
+            windowElement = frontWindow
         }
 
         var titleRef: AnyObject?
-        guard AXUIElementCopyAttributeValue(frontWindow, kAXTitleAttribute as CFString, &titleRef) == .success,
+        guard let windowElement,
+              AXUIElementCopyAttributeValue(windowElement, kAXTitleAttribute as CFString, &titleRef) == .success,
               let windowTitle = titleRef as? String else {
             return false
         }

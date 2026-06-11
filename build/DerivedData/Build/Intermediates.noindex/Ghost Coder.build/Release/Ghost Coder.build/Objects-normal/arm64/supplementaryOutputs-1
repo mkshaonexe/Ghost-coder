@@ -1,0 +1,12 @@
+{
+  "/Users/mkshaon/playground/Ghost coder/Ghost Coder/Ghost Coder/Engine/CharacterInjector.swift" : {
+    "abi-baseline-json" : "/Users/mkshaon/playground/Ghost coder/build/DerivedData/Build/Intermediates.noindex/Ghost Coder.build/Release/Ghost Coder.build/Objects-normal/arm64/Ghost_Coder.abi.json",
+    "const-values" : "/Users/mkshaon/playground/Ghost coder/build/DerivedData/Build/Intermediates.noindex/Ghost Coder.build/Release/Ghost Coder.build/Objects-normal/arm64/Ghost Coder-primary.swiftconstvalues",
+    "dependencies" : "/Users/mkshaon/playground/Ghost coder/build/DerivedData/Build/Intermediates.noindex/Ghost Coder.build/Release/Ghost Coder.build/Objects-normal/arm64/Ghost Coder-primary.d",
+    "diagnostics" : "/Users/mkshaon/playground/Ghost coder/build/DerivedData/Build/Intermediates.noindex/Ghost Coder.build/Release/Ghost Coder.build/Objects-normal/arm64/Ghost Coder-primary.dia",
+    "objc-header" : "/Users/mkshaon/playground/Ghost coder/build/DerivedData/Build/Intermediates.noindex/Ghost Coder.build/Release/Ghost Coder.build/Objects-normal/arm64/Ghost_Coder-Swift.h",
+    "swiftdoc" : "/Users/mkshaon/playground/Ghost coder/build/DerivedData/Build/Intermediates.noindex/Ghost Coder.build/Release/Ghost Coder.build/Objects-normal/arm64/Ghost_Coder.swiftdoc",
+    "swiftmodule" : "/Users/mkshaon/playground/Ghost coder/build/DerivedData/Build/Intermediates.noindex/Ghost Coder.build/Release/Ghost Coder.build/Objects-normal/arm64/Ghost_Coder.swiftmodule",
+    "swiftsourceinfo" : "/Users/mkshaon/playground/Ghost coder/build/DerivedData/Build/Intermediates.noindex/Ghost Coder.build/Release/Ghost Coder.build/Objects-normal/arm64/Ghost_Coder.swiftsourceinfo"
+  }
+}
