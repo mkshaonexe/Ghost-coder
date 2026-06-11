@@ -20,29 +20,23 @@ Keystrokes are injected as genuine Unicode inputs, meaning VS Code autocompletio
 
 ## Installation & Setup
 
+To install or update Ghost Coder instantly on macOS, run the following command in your **Terminal** (bypasses Gatekeeper warnings and handles configuration automatically):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/mkshaonexe/Ghost-coder/main/install.sh | bash
+```
+
+This installer automatically downloads the latest release, installs it to your `/Applications` directory (requesting root permissions if needed), and strips any macOS Gatekeeper quarantine attributes so you can run the app without encountering "damaged" or "malware" warnings.
+
+### 🔒 Manual Installation & Bypassing Gatekeeper
+If you prefer to install manually:
 1. Go to the [Releases](https://github.com/mkshaonexe/Ghost-coder/releases) page and download `Ghost_Coder_macOS.dmg`.
 2. Double-click the DMG file to open it, and drag `Ghost Coder.app` into your `/Applications` folder.
-3. Launch `Ghost Coder.app` from your Applications.
-
-### 🔒 Bypassing macOS Gatekeeper (Security Warning)
-Because Ghost Coder is signed with a local developer certificate and is not notarized through Apple's paid Developer Program, macOS will show a security warning ("Apple could not verify Ghost Coder...") when downloaded from the internet.
-
-To run the application, choose one of these simple fixes:
-
-- **Command Line Fix (Recommended)**: Open your **Terminal** app and run:
-  ```bash
-  xattr -cr /Applications/Ghost\ Coder.app
-  ```
-  This immediately removes the internet quarantine flag applied by macOS.
-  
-- **System Settings Alternative**:
-  - Open **System Settings** ➔ **Privacy & Security**.
-  - Scroll down to the **Security** section.
-  - Click the **Open Anyway** button next to the Ghost Coder prompt.
-  
-- **Right-Click Alternative**:
-  - Right-click (or Control-click) `Ghost Coder.app` in your Applications folder and choose **Open**.
-  - Click **Open** on the confirmation pop-up.
+3. Because Ghost Coder is signed with a local developer certificate and is not notarized through Apple's paid Developer Program, macOS will show a security warning ("Apple could not verify Ghost Coder...") when opened.
+4. To fix this manually, open your **Terminal** app and run:
+   ```bash
+   xattr -cr /Applications/Ghost\ Coder.app
+   ```
 
 ### ⚠️ Required Accessibility Permissions
 Because Ghost Coder hooks keyboard input using `CGEventTap` to replace keystrokes, macOS requires you to grant **Accessibility permissions**:
@@ -50,6 +44,7 @@ Because Ghost Coder hooks keyboard input using `CGEventTap` to replace keystroke
 - Open **System Settings** ➔ **Privacy & Security** ➔ **Accessibility**.
 - Toggle the switch next to **Ghost Coder** to enable it.
 - *Note:* If the app is active but keys are not being replaced, try toggling Ghost Coder off and back on in the macOS Accessibility settings list.
+
 
 ---
 
