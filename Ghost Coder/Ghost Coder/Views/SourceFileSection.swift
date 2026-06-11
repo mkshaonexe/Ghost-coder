@@ -83,7 +83,7 @@ struct SourceFileSection: View {
         HStack(spacing: 16) {
             Image(systemName: "doc.text.fill")
                 .font(.system(size: 28))
-                .foregroundStyle(.accentColor)
+                .foregroundStyle(Color.accentColor)
                 .padding(12)
                 .background(
                     RoundedRectangle(cornerRadius: 8)
