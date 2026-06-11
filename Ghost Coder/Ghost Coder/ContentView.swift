@@ -38,7 +38,7 @@ struct ContentView: View {
             VStack(spacing: 18) {
                 headerCard
 
-                ScrollView(showsIndicators: false) {
+                ScrollView(showsIndicators: true) {
                     VStack(spacing: 18) {
                         SourceFileSection(state: state)
                         TargetSection(state: state)
@@ -102,7 +102,7 @@ struct ContentView: View {
             }
             .padding(24)
         }
-        .frame(width: 500, height: 680)
+        .frame(minWidth: 400, idealWidth: 500, maxWidth: .infinity, minHeight: 500, idealHeight: 680, maxHeight: .infinity)
         .onAppear {
             NSApp.activate(ignoringOtherApps: true)
             NSApp.windows.filter { $0.title == "Ghost Coder" || $0.identifier?.rawValue == "mainWindow" }
