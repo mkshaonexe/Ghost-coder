@@ -15,11 +15,12 @@ final class MainWindowController: NSObject, NSWindowDelegate {
         let hostingView = NSHostingView(rootView: ContentView(state: state))
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 500, height: 680),
-            styleMask: [.titled, .closable, .miniaturizable],
+            styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered,
             defer: false
         )
 
+        window.minSize = NSSize(width: 400, height: 500)
         window.title = "Ghost Coder"
         window.identifier = NSUserInterfaceItemIdentifier("mainWindow")
         window.center()
