@@ -2,16 +2,46 @@
 //  Ghost_CoderApp.swift
 //  Ghost Coder
 //
-//  Created by  MK Shaon on 11/6/26.
+//  Created by AI on 11/6/26.
 //
 
 import SwiftUI
 
 @main
 struct Ghost_CoderApp: App {
+    @StateObject private var state: GhostState
+    private var interceptor: KeyboardInterceptor
+    private var windowMonitor: WindowMonitor
+    private var hotkey: GlobalHotkey
+
+    init() {
+        let s = GhostState()
+        let i = KeyboardInterceptor(state: s)
+        let w = WindowMonitor(state: s)
+        let h = GlobalHotkey(state: s, interceptor: i)
+        
+        _state = StateObject(wrappedValue: s)
+        self.interceptor = i
+        self.windowMonitor = w
+        self.hotkey = h
+        
+        i.start()
+        w.start()
+        h.register()
+    }
+
     var body: some Scene {
-        WindowGroup {
-            ContentView()
+        MenuBarExtra {
+            MenuBarView(state: state)
+        } label: {
+            MenuBarIcon(state: state)
         }
+        .menuBarExtraStyle(.menu)
+
+        Window("Ghost Coder", id: "mainWindow") {
+            ContentView(state: state)
+        }
+        .windowResizability(.contentSize)
+        .defaultPosition(.center)
     }
 }
