@@ -65,8 +65,13 @@ fi
 
 # Step 5: Strip Gatekeeper Quarantine Attributes
 echo -e "\033[1;34m[5/5]\033[0m Clearing macOS Gatekeeper quarantine flags..."
-sudo xattr -cr "$TARGET_APP"
-echo "  * Gatekeeper restrictions removed."
+if xattr -cr "$TARGET_APP" 2>/dev/null; then
+  echo "  * Gatekeeper restrictions removed successfully."
+else
+  echo "  * Privileges required to modify attributes. Requesting root permission..."
+  sudo xattr -cr "$TARGET_APP"
+  echo "  * Gatekeeper restrictions removed."
+fi
 
 # Clean up temp files
 rm -rf "$TEMP_DIR"
