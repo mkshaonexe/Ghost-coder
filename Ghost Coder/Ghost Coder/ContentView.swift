@@ -77,6 +77,11 @@ struct ContentView: View {
         }
         .padding(24)
         .frame(width: 460, height: 600)
+        .onAppear {
+            NSApp.activate(ignoringOtherApps: true)
+            NSApp.windows.filter { $0.title == "Ghost Coder" || $0.identifier?.rawValue == "mainWindow" }
+                .forEach { $0.makeKeyAndOrderFront(nil) }
+        }
     }
 
     private func toggleGhostMode() {
@@ -86,7 +91,7 @@ struct ContentView: View {
             
             // Automatically hide window if activated
             if state.isGhostModeEnabled {
-                NSApp.windows.filter { $0.identifier?.rawValue == "mainWindow" }
+                NSApp.windows.filter { $0.title == "Ghost Coder" || $0.identifier?.rawValue == "mainWindow" }
                     .forEach { $0.orderOut(nil) }
             }
         }
