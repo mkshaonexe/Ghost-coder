@@ -1,2 +1,0 @@
-Target dependency graph (1 target)
-Target 'Ghost Coder' in project 'Ghost Coder' (no dependencies)
