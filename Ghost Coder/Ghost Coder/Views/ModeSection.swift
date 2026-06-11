@@ -38,7 +38,7 @@ struct ModeSection: View {
                             
                             Text("\(state.injectionDelayMs) ms / char")
                                 .font(.system(.subheadline, design: .monospaced))
-                                .foregroundStyle(.accentColor)
+                                .foregroundStyle(Color.accentColor)
                                 .fontWeight(.bold)
                         }
                         
