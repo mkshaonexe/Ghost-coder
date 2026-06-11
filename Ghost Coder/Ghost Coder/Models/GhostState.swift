@@ -85,7 +85,9 @@ class GhostState: ObservableObject {
         let content = try String(contentsOf: url, encoding: .utf8)
         sourceCode = content
         sourceFileName = url.lastPathComponent
+        isGhostModeEnabled = false // Auto-pause
         reset()
+        updateCachedActiveState()
     }
 
     func reset() {
