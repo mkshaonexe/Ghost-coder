@@ -28,14 +28,6 @@ struct Ghost_CoderApp: App {
         i.start()
         w.start()
         h.register()
-
-        // Automatically activate and show the main configuration window on startup
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-            NSApp.activate(ignoringOtherApps: true)
-            if let window = NSApp.windows.first(where: { $0.identifier?.rawValue == "mainWindow" }) {
-                window.makeKeyAndOrderFront(nil)
-            }
-        }
     }
 
     var body: some Scene {
