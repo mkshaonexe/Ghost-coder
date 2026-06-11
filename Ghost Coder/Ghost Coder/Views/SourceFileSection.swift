@@ -28,7 +28,7 @@ struct SourceFileSection: View {
         .frame(maxWidth: .infinity)
     }
 
-    private var dropZoneView: View {
+    private var dropZoneView: some View {
         Button(action: selectFile) {
             VStack(spacing: 12) {
                 Image(systemName: "doc.text.belowecg.fill")
@@ -79,7 +79,7 @@ struct SourceFileSection: View {
         }
     }
 
-    private var loadedView: View {
+    private var loadedView: some View {
         HStack(spacing: 16) {
             Image(systemName: "doc.text.fill")
                 .font(.system(size: 28))
