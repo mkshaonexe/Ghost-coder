@@ -31,7 +31,7 @@ struct SourceFileSection: View {
     private var dropZoneView: some View {
         Button(action: selectFile) {
             VStack(spacing: 12) {
-                Image(systemName: "doc.text.belowecg.fill")
+                Image(systemName: "arrow.down.doc.fill")
                     .font(.system(size: 32))
                     .foregroundColor(isTargeted ? .accentColor : .secondary)
                     .scaleEffect(isTargeted ? 1.1 : 1.0)
