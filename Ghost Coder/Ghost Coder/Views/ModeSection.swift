@@ -15,7 +15,7 @@ struct ModeSection: View {
             Text("INPUT MODE & SPEED")
                 .font(.system(.caption, design: .rounded))
                 .fontWeight(.bold)
-                .foregroundColor(.secondary)
+                .foregroundStyle(Color.white.opacity(0.6))
 
             VStack(spacing: 12) {
                 // Segmented picker for InputMode
@@ -32,13 +32,13 @@ struct ModeSection: View {
                         HStack {
                             Text("Typing Speed")
                                 .font(.body)
-                                .foregroundColor(.primary)
+                                .foregroundStyle(.white)
                             
                             Spacer()
                             
                             Text("\(state.injectionDelayMs) ms / char")
                                 .font(.system(.subheadline, design: .monospaced))
-                                .foregroundColor(.accentColor)
+                                .foregroundStyle(.accentColor)
                                 .fontWeight(.bold)
                         }
                         
@@ -58,11 +58,11 @@ struct ModeSection: View {
             .padding(12)
             .background(
                 RoundedRectangle(cornerRadius: 12)
-                    .fill(Color(NSColor.controlBackgroundColor).opacity(0.5))
+                    .fill(Color.white.opacity(0.08))
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
-                    .stroke(Color.secondary.opacity(0.2), lineWidth: 1)
+                    .stroke(Color.white.opacity(0.12), lineWidth: 1)
             )
             .animation(.easeInOut(duration: 0.25), value: state.inputMode)
         }
