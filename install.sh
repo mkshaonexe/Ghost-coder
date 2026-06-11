@@ -79,7 +79,7 @@ rm -rf "$TEMP_DIR"
 # Launch the Application
 echo -e "\n\033[1;32m=== Installation Complete! ===\033[0m"
 echo -e "Launching Ghost Coder...\n"
-open -a "Ghost Coder"
+open "/Applications/Ghost Coder.app"
 
 echo -e "\033[1;33m⚠️  ATTENTION REQUIRED: Accessibility Permissions\033[0m"
 echo -e "Ghost Coder requires Accessibility permissions to intercept keystrokes."
