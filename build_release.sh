@@ -1,7 +1,11 @@
 #!/bin/bash
 set -e
 
-echo "=== Building Ghost Coder v1.1.0 ==="
+# Extract marketing version dynamically from project
+VERSION=$(grep -m1 "MARKETING_VERSION =" "Ghost Coder/Ghost Coder.xcodeproj/project.pbxproj" | cut -d'=' -f2 | tr -d ' ;"\t\r\n')
+TAG="v${VERSION}"
+
+echo "=== Building Ghost Coder ${TAG} ==="
 rm -rf "Ghost Coder/build"
 rm -f Ghost_Coder_macOS.zip Ghost_Coder_macOS.dmg
 
@@ -47,16 +51,16 @@ git commit -m "Update gitignore for build artifacts" || true
 git push origin main || true
 
 # Tag the commit
-git tag -d v1.1.0 || true
-git push origin :refs/tags/v1.1.0 || true
-git tag v1.1.0
-git push origin v1.1.0
+git tag -d "${TAG}" || true
+git push origin ":refs/tags/${TAG}" || true
+git tag "${TAG}"
+git push origin "${TAG}"
 
 # Create Github Release using gh
 echo "=== Publishing to GitHub Releases ==="
-gh release delete v1.1.0 --yes || true
-gh release create v1.1.0 Ghost_Coder_macOS.zip Ghost_Coder_macOS.dmg \
-  --title "v1.1.0 — Production Release" \
-  --notes "This release implements the new production installer pipeline. Standard installation can now be completed via a single Terminal command."
+gh release delete "${TAG}" --yes || true
+gh release create "${TAG}" Ghost_Coder_macOS.zip Ghost_Coder_macOS.dmg \
+  --title "${TAG} — Production Release" \
+  --notes "This release updates the UI layout to be resizable with minimum window dimensions and enables a scrollbar for scrollable content."
 
 echo "=== Release published successfully! ==="
