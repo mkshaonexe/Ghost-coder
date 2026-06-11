@@ -33,7 +33,7 @@ struct SourceFileSection: View {
             VStack(spacing: 12) {
                 Image(systemName: "arrow.down.doc.fill")
                     .font(.system(size: 32))
-                    .foregroundColor(isTargeted ? .accentColor : .secondary)
+                    .foregroundStyle(isTargeted ? Color.accentColor : Color.secondary)
                     .scaleEffect(isTargeted ? 1.1 : 1.0)
                     .animation(.spring(), value: isTargeted)
 
@@ -83,7 +83,7 @@ struct SourceFileSection: View {
         HStack(spacing: 16) {
             Image(systemName: "doc.text.fill")
                 .font(.system(size: 28))
-                .foregroundColor(.accentColor)
+                .foregroundStyle(.accentColor)
                 .padding(12)
                 .background(
                     RoundedRectangle(cornerRadius: 8)
@@ -120,7 +120,7 @@ struct SourceFileSection: View {
                     }
                 }) {
                     Image(systemName: "arrow.counterclockwise")
-                        .foregroundColor(.red)
+                        .foregroundStyle(.red)
                         .help("Reset Typing Pointer")
                 }
                 .buttonStyle(.bordered)
