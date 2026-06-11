@@ -47,11 +47,11 @@ class GlobalHotkey {
 
             if self.state.isGhostModeEnabled {
                 // Hide main window when Ghost Mode activates
-                NSApp.windows.filter { $0.identifier?.rawValue == "mainWindow" }
+                NSApp.windows.filter { $0.title == "Ghost Coder" || $0.identifier?.rawValue == "mainWindow" }
                     .forEach { $0.orderOut(nil) }
             } else {
                 // Show main window when Ghost Mode deactivates
-                NSApp.windows.filter { $0.identifier?.rawValue == "mainWindow" }
+                NSApp.windows.filter { $0.title == "Ghost Coder" || $0.identifier?.rawValue == "mainWindow" }
                     .forEach { $0.makeKeyAndOrderFront(nil) }
             }
         }
