@@ -225,39 +225,81 @@ struct ContentView: View {
     private var activationButtonBlock: some View {
         VStack(spacing: 12) {
             Button(action: toggleGhostMode) {
-                HStack(spacing: 10) {
-                    Image(systemName: state.isGhostModeEnabled ? "pause.fill" : "play.fill")
-                        .font(.headline)
+                HStack(spacing: 12) {
+                    // Left Icon in a circular container
+                    ZStack {
+                        Circle()
+                            .fill(state.isSourceLoaded ? Color.white.opacity(0.18) : Color.white.opacity(0.05))
+                            .frame(width: 32, height: 32)
+                        
+                        Image(systemName: state.isGhostModeEnabled ? "pause.fill" : "play.fill")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundStyle(state.isSourceLoaded ? Color.white : Color.white.opacity(0.3))
+                            .offset(x: (!state.isGhostModeEnabled) ? 1 : 0) // Nudge play triangle
+                    }
+                    .padding(.leading, 6)
+
                     Text(state.isGhostModeEnabled ? "Pause Ghost Mode" : "Activate Ghost Mode")
-                        .font(.custom("Avenir Next", size: 15))
-                        .fontWeight(.heavy)
+                        .font(.system(size: 15, weight: .bold, design: .rounded))
+                        .foregroundStyle(state.isSourceLoaded ? Color.white : Color.white.opacity(0.3))
+                    
                     Spacer()
-                    Text(state.isGhostModeEnabled ? "Armed" : "Idle")
-                        .font(.system(size: 12, weight: .bold, design: .rounded))
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
-                        .background(Color.white.opacity(0.14), in: Capsule())
+                    
+                    // Right status pill
+                    HStack(spacing: 6) {
+                        if state.isGhostModeEnabled {
+                            PulsingDot(color: .green)
+                        } else {
+                            Circle()
+                                .fill(state.isSourceLoaded ? Color.white.opacity(0.5) : Color.white.opacity(0.2))
+                                .frame(width: 6, height: 6)
+                        }
+                        
+                        Text(state.isGhostModeEnabled ? "Armed" : "Idle")
+                            .font(.system(size: 11, weight: .bold, design: .rounded))
+                            .foregroundStyle(state.isSourceLoaded ? Color.white : Color.white.opacity(0.3))
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(state.isGhostModeEnabled ? Color.black.opacity(0.25) : Color.white.opacity(0.08), in: Capsule())
+                    .overlay(
+                        Capsule()
+                            .stroke(state.isGhostModeEnabled ? Color.white.opacity(0.15) : Color.white.opacity(0.08), lineWidth: 1)
+                    )
+                    .padding(.trailing, 6)
                 }
-                .foregroundStyle(.white)
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 14)
+                .padding(.vertical, 10)
             }
             .buttonStyle(.plain)
             .background(
-                LinearGradient(
-                    colors: state.isGhostModeEnabled
-                        ? [Color.orange.opacity(0.92), Color.red.opacity(0.88)]
-                        : [Color.green.opacity(0.92), Color.cyan.opacity(0.88)],
-                    startPoint: .leading,
-                    endPoint: .trailing
-                ),
-                in: RoundedRectangle(cornerRadius: 18, style: .continuous)
+                Group {
+                    if !state.isSourceLoaded {
+                        Color.white.opacity(0.05)
+                    } else {
+                        LinearGradient(
+                            colors: state.isGhostModeEnabled
+                                ? [Color(red: 0.95, green: 0.35, blue: 0.20), Color(red: 0.85, green: 0.12, blue: 0.38)]
+                                : [Color(red: 0.05, green: 0.60, blue: 0.95), Color(red: 0.0, green: 0.85, blue: 0.60)],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    }
+                },
+                in: RoundedRectangle(cornerRadius: 20, style: .continuous)
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .stroke(Color.white.opacity(0.16), lineWidth: 1)
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .stroke(state.isSourceLoaded ? Color.white.opacity(0.2) : Color.white.opacity(0.08), lineWidth: 1)
             )
-            .shadow(color: Color.black.opacity(0.22), radius: 18, x: 0, y: 10)
+            .shadow(
+                color: state.isSourceLoaded
+                    ? (state.isGhostModeEnabled ? Color(red: 0.85, green: 0.12, blue: 0.38).opacity(0.35) : Color(red: 0.0, green: 0.85, blue: 0.60).opacity(0.25))
+                    : Color.clear,
+                radius: 14,
+                x: 0,
+                y: 6
+            )
             .disabled(!state.isSourceLoaded)
 
             HStack(spacing: 8) {
@@ -292,6 +334,23 @@ struct ContentView: View {
                 }
             }
         }
+    }
+}
+
+struct PulsingDot: View {
+    var color: Color
+    @State private var isAnimating = false
+
+    var body: some View {
+        Circle()
+            .fill(color)
+            .frame(width: 6, height: 6)
+            .scaleEffect(isAnimating ? 1.4 : 1.0)
+            .opacity(isAnimating ? 0.45 : 1.0)
+            .animation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true), value: isAnimating)
+            .onAppear {
+                isAnimating = true
+            }
     }
 }
 
