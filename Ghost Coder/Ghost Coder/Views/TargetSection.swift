@@ -42,30 +42,34 @@ struct TargetSection: View {
 
                 VStack(alignment: .leading, spacing: 6) {
                     HStack {
-                        Text("Workspace Folder Path")
+                        Text("Target File Path")
                             .font(.body)
                             .foregroundStyle(.white)
 
                         Spacer()
 
-                        Text("(Optional)")
+                        Text("(Required for HotFix)")
                             .font(.caption)
                             .foregroundStyle(Color.white.opacity(0.58))
                     }
 
                     HStack(spacing: 8) {
-                        TextField("e.g. /Users/username/projects/my-app", text: $state.workspaceFolderPath)
+                        TextField("e.g. /Users/username/.../file.dart", text: $state.targetFilePath)
                             .textFieldStyle(.roundedBorder)
                             .font(.system(.body, design: .monospaced))
-                            .onChange(of: state.workspaceFolderPath) { _ in
+                            .onChange(of: state.targetFilePath) { newValue in
+                                if !newValue.isEmpty {
+                                    let url = URL(fileURLWithPath: newValue)
+                                    state.workspaceFolderPath = url.deletingLastPathComponent().path
+                                }
                                 state.updateCachedActiveState()
                             }
 
-                        Button(action: selectFolder) {
-                            Image(systemName: "folder.badge.plus")
+                        Button(action: selectTargetFile) {
+                            Image(systemName: "doc.badge.plus")
                         }
                         .buttonStyle(.bordered)
-                        .help("Select Workspace Folder")
+                        .help("Select Target File")
                     }
                 }
 
@@ -190,15 +194,16 @@ struct TargetSection: View {
         return "The frontmost window title does not match the selected workspace folder."
     }
 
-    private func selectFolder() {
+    private func selectTargetFile() {
         let panel = NSOpenPanel()
         panel.allowsMultipleSelection = false
-        panel.canChooseDirectories = true
-        panel.canChooseFiles = false
+        panel.canChooseDirectories = false
+        panel.canChooseFiles = true
         panel.canCreateDirectories = false
 
         if panel.runModal() == .OK, let url = panel.url {
-            state.workspaceFolderPath = url.path
+            state.targetFilePath = url.path
+            state.workspaceFolderPath = url.deletingLastPathComponent().path
             state.updateCachedActiveState()
         }
     }
