@@ -121,13 +121,12 @@ class WindowMonitor {
         guard let windowElement,
               AXUIElementCopyAttributeValue(windowElement, kAXTitleAttribute as CFString, &titleRef) == .success,
               let windowTitle = titleRef as? String else {
-            return false
-        }
-
-        // Match on the last path component of workspaceFolderPath
-        // VS Code title format: "filename — foldername — Visual Studio Code"
         let folderName = URL(fileURLWithPath: state.workspaceFolderPath).lastPathComponent
-        return windowTitle.contains(folderName)
+        let match = windowTitle.contains(folderName)
+        if !match {
+            print("Ghost Coder: WindowMonitor - Workspace mismatch (Folder: '\(folderName)', Title: '\(windowTitle)')")
+        }
+        return match
     }
 
     @objc private func handleAppActivation() {
