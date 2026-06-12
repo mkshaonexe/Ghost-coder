@@ -10,6 +10,10 @@ import SwiftUI
 struct ContentView: View {
     @ObservedObject var state: GhostState
 
+    private var appVersion: String {
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.2.1"
+    }
+
     var body: some View {
         ZStack {
             LinearGradient(
@@ -20,6 +24,13 @@ struct ContentView: View {
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
+            )
+            .overlay(
+                Circle()
+                    .fill(Color.white.opacity(0.07))
+                    .blur(radius: 80)
+                    .frame(width: 220, height: 220)
+                    .offset(x: 160, y: -220)
             )
             .overlay(
                 Circle()
@@ -122,7 +133,7 @@ struct ContentView: View {
                             .font(.custom("Avenir Next", size: 31))
                             .fontWeight(.heavy)
                             .foregroundStyle(.white)
-                        Text("v\(Bundle.main.infoDictionary?[\"CFBundleShortVersionString\"] as? String ?? \"1.2.1\")")
+                        Text("v\(appVersion)")
                             .font(.system(size: 14, weight: .semibold, design: .rounded))
                             .foregroundStyle(Color.white.opacity(0.5))
                     }
