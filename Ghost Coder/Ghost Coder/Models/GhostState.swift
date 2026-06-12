@@ -113,6 +113,7 @@ class GhostState: ObservableObject {
         let formattedMessage = "[\(timestamp)] \(message)"
         
         print("Ghost Coder Log: \(formattedMessage)")
+        responseLogger?.logDiagnosticMessage(formattedMessage)
         
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
