@@ -46,22 +46,54 @@ enum GhostOperationalState {
 class GhostState: ObservableObject {
 
     // MARK: - Configuration (user-set, persisted)
-    @Published var sourceCode: String = ""
+    @Published var sourceCode: String = "" {
+        didSet {
+            stateLock.lock()
+            safeSourceCode = sourceCode
+            stateLock.unlock()
+        }
+    }
     @Published var sourceFileName: String = ""
     @Published var ideTarget: IDETarget = .vsCode
     @Published var workspaceFolderPath: String = ""
-    @Published var inputMode: InputMode = .character
-    @Published var injectionDelayMs: Int = 12       // per-character delay for word/line mode
+    @Published var inputMode: InputMode = .character {
+        didSet {
+            stateLock.lock()
+            safeInputMode = inputMode
+            stateLock.unlock()
+        }
+    }
+    @Published var injectionDelayMs: Int = 12 {
+        didSet {
+            stateLock.lock()
+            safeInjectionDelayMs = injectionDelayMs
+            stateLock.unlock()
+        }
+    }
 
     // MARK: - Runtime State (not persisted)
     @Published var isGhostModeEnabled: Bool = false
     @Published var isIDEFocused: Bool = false
     @Published var isFolderScopeActive: Bool = true  // true when folder constraint passes
-    @Published var currentIndex: Int = 0
+    @Published var currentIndex: Int = 0 {
+        didSet {
+            stateLock.lock()
+            safeCurrentIndex = currentIndex
+            stateLock.unlock()
+        }
+    }
 
     // MARK: - Injection History (for backspace undo)
     // Each entry = number of characters injected in one keypress
     var injectionHistory: [Int] = []
+
+    // Thread-safety locks and safe mirror variables
+    private let stateLock = NSLock()
+    private var safeCurrentIndex: Int = 0
+    private var safeSourceCode: String = ""
+    private var safeInputMode: InputMode = .character
+    private var safeInjectionDelayMs: Int = 12
+    private var safeInjectionHistory: [Int] = []
 
     // MARK: - Cached active flag (read by CGEventTap callback — must be thread-safe)
     // Updated on main thread by WindowMonitor. Read on tap thread (Bool is atomic on Apple platforms).
@@ -161,6 +193,13 @@ class GhostState: ObservableObject {
 
     func loadSourceFile(url: URL) throws {
         let content = try String(contentsOf: url, encoding: .utf8)
+        
+        stateLock.lock()
+        safeSourceCode = content
+        safeCurrentIndex = 0
+        safeInjectionHistory.removeAll()
+        stateLock.unlock()
+
         sourceCode = content
         sourceFileName = url.lastPathComponent
         isGhostModeEnabled = false // Auto-pause
@@ -169,6 +208,12 @@ class GhostState: ObservableObject {
     }
 
     func clearSourceFile() {
+        stateLock.lock()
+        safeSourceCode = ""
+        safeCurrentIndex = 0
+        safeInjectionHistory.removeAll()
+        stateLock.unlock()
+
         sourceCode = ""
         sourceFileName = ""
         isGhostModeEnabled = false
@@ -177,18 +222,88 @@ class GhostState: ObservableObject {
     }
 
     func reset() {
+        stateLock.lock()
+        safeCurrentIndex = 0
+        safeInjectionHistory.removeAll()
+        stateLock.unlock()
+
         currentIndex = 0
         injectionHistory.removeAll()
     }
 
+    // MARK: - Thread-safe State Modifiers (called from background/tap threads)
+    func advanceIndex(by count: Int) {
+        stateLock.lock()
+        safeCurrentIndex += count
+        safeInjectionHistory.append(count)
+        let newIndex = safeCurrentIndex
+        stateLock.unlock()
+        
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            self.currentIndex = newIndex
+            self.injectionHistory = self.safeInjectionHistory
+            self.updateCachedActiveState()
+        }
+    }
+
+    func popLastInjection() -> Int? {
+        stateLock.lock()
+        guard let count = safeInjectionHistory.popLast() else {
+            stateLock.unlock()
+            return nil
+        }
+        safeCurrentIndex -= count
+        let newIndex = safeCurrentIndex
+        stateLock.unlock()
+        
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            self.currentIndex = newIndex
+            self.injectionHistory = self.safeInjectionHistory
+            self.updateCachedActiveState()
+        }
+        
+        return count
+    }
+
+    var isHistoryEmpty: Bool {
+        stateLock.lock()
+        defer { stateLock.unlock() }
+        return safeInjectionHistory.isEmpty
+    }
+
+    var safeDelayMs: Int {
+        stateLock.lock()
+        defer { stateLock.unlock() }
+        return safeInjectionDelayMs
+    }
+
+    func getNextChar() -> Character? {
+        stateLock.lock()
+        let localSourceCode = safeSourceCode
+        let localCurrentIndex = safeCurrentIndex
+        stateLock.unlock()
+
+        guard localCurrentIndex < localSourceCode.count else { return nil }
+        let index = localSourceCode.index(localSourceCode.startIndex, offsetBy: localCurrentIndex)
+        return localSourceCode[index]
+    }
+
     // MARK: - Chunk Calculation (called on main/tap thread, fast — no IO)
     func getNextChunk() -> String {
-        guard currentIndex < sourceCode.count else { return "" }
+        stateLock.lock()
+        let localSourceCode = safeSourceCode
+        let localCurrentIndex = safeCurrentIndex
+        let localInputMode = safeInputMode
+        stateLock.unlock()
 
-        let startOffset = sourceCode.index(sourceCode.startIndex, offsetBy: currentIndex)
-        let remaining = sourceCode[startOffset...]
+        guard localCurrentIndex < localSourceCode.count else { return "" }
 
-        switch inputMode {
+        let startOffset = localSourceCode.index(localSourceCode.startIndex, offsetBy: localCurrentIndex)
+        let remaining = localSourceCode[startOffset...]
+
+        switch localInputMode {
         case .character:
             return String(remaining.prefix(1))
 

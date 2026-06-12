@@ -6,10 +6,12 @@
 //
 
 import AppKit
+import Combine
 
 class WindowMonitor {
     private let state: GhostState
     private var timer: Timer?
+    private var cancellables = Set<AnyCancellable>()
 
     init(state: GhostState) {
         self.state = state
@@ -19,11 +21,42 @@ class WindowMonitor {
         timer = Timer.scheduledTimer(withTimeInterval: 0.15, repeats: true) { [weak self] _ in
             self?.check()
         }
+
+        // Fast-path focus checking when Ghost Mode is toggled on
+        state.$isGhostModeEnabled
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] enabled in
+                guard let self = self else { return }
+                if enabled {
+                    // Bring the target IDE to the front immediately to accelerate the transition
+                    self.activateIDETarget()
+                    
+                    // Run focus check immediately and also queue subsequent checks
+                    // to ensure focus transition has completed and state is active
+                    self.check()
+                    for delay in [0.02, 0.05, 0.1, 0.15, 0.2] {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                            self.check()
+                        }
+                    }
+                }
+            }
+            .store(in: &cancellables)
+
+        // Observe when any application is activated to instantly update focus state
+        NSWorkspace.shared.notificationCenter.addObserver(
+            self,
+            selector: #selector(handleAppActivation),
+            name: NSWorkspace.didActivateApplicationNotification,
+            object: nil
+        )
     }
 
     func stop() {
         timer?.invalidate()
         timer = nil
+        cancellables.removeAll()
+        NSWorkspace.shared.notificationCenter.removeObserver(self)
     }
 
     private func check() {
@@ -95,5 +128,16 @@ class WindowMonitor {
         // VS Code title format: "filename — foldername — Visual Studio Code"
         let folderName = URL(fileURLWithPath: state.workspaceFolderPath).lastPathComponent
         return windowTitle.contains(folderName)
+    }
+
+    @objc private func handleAppActivation() {
+        check()
+    }
+
+    private func activateIDETarget() {
+        guard let bundleID = state.ideTarget.bundleID else { return }
+        if let app = NSWorkspace.shared.runningApplications.first(where: { $0.bundleIdentifier == bundleID }) {
+            app.activate(options: [.activateIgnoringOtherApps])
+        }
     }
 }
