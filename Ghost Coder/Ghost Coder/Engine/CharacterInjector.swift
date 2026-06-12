@@ -22,14 +22,18 @@ class CharacterInjector {
         let isMultiChar = text.count > 1
 
         for char in text {
-            switch char {
-            case "\n":
-                injectVirtualKey(keyCode: 36)  // Return key — preserves IDE auto-indent
-            case "\t":
-                injectVirtualKey(keyCode: 48)  // Tab key
-            default:
-                injectUnicodeCharacter(char)
-            }
+            // IMPORTANT: Inject ALL characters — including \n and \t — as raw Unicode
+            // events rather than virtual key codes.
+            //
+            // Why: pressing the Return virtual key (keyCode 36) triggers VS Code's
+            // auto-indent engine, which inserts its own leading whitespace on the new
+            // line.  When we then inject the leading spaces/tabs that already exist in
+            // the source file, the result is *double indentation*.  The same problem
+            // applies to Tab (keyCode 48) which can fire VS Code's tab-completion.
+            //
+            // Injecting \n / \t as Unicode bypasses all IDE formatting hooks and
+            // delivers exactly the whitespace that is already in the source file.
+            injectUnicodeCharacter(char)
 
             if isMultiChar {
                 // Small delay between characters in word/line mode so VS Code processes each
