@@ -44,6 +44,7 @@ struct SessionMetadata: Encodable {
 class ResponseLogger {
     private let sessionId: String
     private let responseLogURL: URL
+    private let diagnosticLogURL: URL
     private let logQueue = DispatchQueue(label: "com.ghostcoder.logging", qos: .background)
     private var eventSequence = 0
     private let sequenceLock = NSLock()
@@ -65,6 +66,7 @@ class ResponseLogger {
         }
         
         self.responseLogURL = logsDirectory.appendingPathComponent("session_\(sessionId)_response.jsonl")
+        self.diagnosticLogURL = logsDirectory.appendingPathComponent("session_\(sessionId)_diagnostic.log")
     }
     
     func startSession(sourceFile: String, ideTarget: String, inputMode: String) {
@@ -150,10 +152,48 @@ class ResponseLogger {
         }
     }
     
+    func logDiagnosticMessage(_ message: String) {
+        logQueue.async { [weak self] in
+            guard let self = self else { return }
+            do {
+                let data = Data("\(message)\n".utf8)
+                if FileManager.default.fileExists(atPath: self.diagnosticLogURL.path) {
+                    if let fileHandle = try? FileHandle(forWritingTo: self.diagnosticLogURL) {
+                        fileHandle.seekToEndOfFile()
+                        fileHandle.write(data)
+                        fileHandle.closeFile()
+                    }
+                } else {
+                    try data.write(to: self.diagnosticLogURL)
+                }
+            } catch {
+                print("ResponseLogger: Error writing diagnostic log: \(error)")
+            }
+        }
+    }
+    
     func endSession() {
         logQueue.async { [weak self] in
             guard let self = self else { return }
             print("ResponseLogger: Session ended \(self.sessionId)")
+            let formatter = DateFormatter()
+            formatter.dateFormat = "HH:mm:ss"
+            let timestamp = formatter.string(from: Date())
+            let logMsg = "[\(timestamp)] [SESSION END] Session ended \(self.sessionId)"
+            do {
+                let data = Data("\(logMsg)\n".utf8)
+                if FileManager.default.fileExists(atPath: self.diagnosticLogURL.path) {
+                    if let fileHandle = try? FileHandle(forWritingTo: self.diagnosticLogURL) {
+                        fileHandle.seekToEndOfFile()
+                        fileHandle.write(data)
+                        fileHandle.closeFile()
+                    }
+                } else {
+                    try data.write(to: self.diagnosticLogURL)
+                }
+            } catch {
+                print("ResponseLogger: Error writing diagnostic log at session end: \(error)")
+            }
         }
     }
     
