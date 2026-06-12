@@ -242,8 +242,8 @@ struct ContentView: View {
 
     @ViewBuilder
     private var buttonContent: some View {
-        let isEnabled: Bool = state.isGhostModeEnabled
-        let isLoaded: Bool = state.isSourceLoaded
+        let isEnabled = state.isGhostModeEnabled
+        let isLoaded = state.isSourceLoaded
         
         HStack(spacing: 12) {
             ZStack {
@@ -292,9 +292,9 @@ struct ContentView: View {
 
     @ViewBuilder
     private var activationButtonBlock: some View {
-        let isLoaded: Bool = state.isSourceLoaded
-        let gradientColors: [Color] = activationButtonGradientColors
-        let shadowColor: Color = activationButtonShadowColor
+        let isLoaded = state.isSourceLoaded
+        let gradientColors = activationButtonGradientColors
+        let shadowColor = activationButtonShadowColor
         
         VStack(spacing: 12) {
             Button(action: toggleGhostMode) {
@@ -302,17 +302,11 @@ struct ContentView: View {
             }
             .buttonStyle(.plain)
             .background(
-                Group {
-                    if !isLoaded {
-                        Color.white.opacity(0.05)
-                    } else {
-                        LinearGradient(
-                            colors: gradientColors,
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                    }
-                },
+                LinearGradient(
+                    colors: isLoaded ? gradientColors : [Color.white.opacity(0.05), Color.white.opacity(0.05)],
+                    startPoint: .leading,
+                    endPoint: .trailing
+                ),
                 in: RoundedRectangle(cornerRadius: 20, style: .continuous)
             )
             .overlay(
