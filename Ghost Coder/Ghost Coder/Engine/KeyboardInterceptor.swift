@@ -184,8 +184,9 @@ class KeyboardInterceptor {
             isInjecting = true
             injectionQueue.async { [weak self] in
                 guard let self else { return }
-                self.injector.handleBackspace()
-                self.isInjecting = false
+                self.injector.handleBackspace(on: self.injectionQueue) { [weak self] in
+                    self?.isInjecting = false
+                }
             }
             return nil  // Block original backspace
         }
@@ -211,8 +212,9 @@ class KeyboardInterceptor {
         isInjecting = true
         injectionQueue.async { [weak self] in
             guard let self else { return }
-            self.injector.injectString(chunk)
-            self.isInjecting = false
+            self.injector.injectString(chunk, on: self.injectionQueue) { [weak self] in
+                self?.isInjecting = false
+            }
         }
 
         return nil  // Block the original keypress
