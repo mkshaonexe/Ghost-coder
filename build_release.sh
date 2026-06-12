@@ -1,6 +1,15 @@
 #!/bin/bash
 set -e
 
+# Auto-extract GitHub token from remote URL if GITHUB_TOKEN isn't set in environment
+if [ -z "$GITHUB_TOKEN" ]; then
+  REMOTE_URL=$(git remote get-url origin 2>/dev/null || true)
+  if [[ "$REMOTE_URL" =~ https://([^@]+)@ ]]; then
+    export GITHUB_TOKEN="${BASH_REMATCH[1]}"
+    export GH_TOKEN="${BASH_REMATCH[1]}"
+  fi
+fi
+
 # Extract marketing version dynamically from project
 VERSION=$(grep -m1 "MARKETING_VERSION =" "Ghost Coder/Ghost Coder.xcodeproj/project.pbxproj" | cut -d'=' -f2 | tr -d ' ;"\t\r\n')
 TAG="v${VERSION}"
@@ -61,6 +70,6 @@ echo "=== Publishing to GitHub Releases ==="
 gh release delete "${TAG}" --yes || true
 gh release create "${TAG}" Ghost_Coder_macOS.zip Ghost_Coder_macOS.dmg \
   --title "${TAG} — Production Release" \
-  --notes "This release updates the UI layout to be resizable with minimum window dimensions and enables a scrollbar for scrollable content."
+  --notes "This release bumps version to ${TAG} and fixes the installation download script by pointing to release assets."
 
 echo "=== Release published successfully! ==="
