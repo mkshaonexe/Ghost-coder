@@ -67,7 +67,7 @@ class GhostState: ObservableObject {
     @Published var inputMode: InputMode = .character {
         didSet {
             stateLock.lock()
-            safeInputMode = inputMode
+            _safeInputMode = inputMode
             stateLock.unlock()
         }
     }
@@ -133,7 +133,7 @@ class GhostState: ObservableObject {
     private let stateLock = NSLock()
     private var safeCurrentIndex: Int = 0
     private var safeSourceCode: String = ""
-    private var safeInputMode: InputMode = .character
+    private var _safeInputMode: InputMode = .character
     private var safeInjectionDelayMs: Int = 12
     private var safeInjectionHistory: [Int] = []
     private var _safeEnableAutoCloseSkip: Bool = true
@@ -364,6 +364,12 @@ class GhostState: ObservableObject {
         return _safeEnableAutoCloseSkip
     }
 
+    var safeInputMode: InputMode {
+        stateLock.lock()
+        defer { stateLock.unlock() }
+        return _safeInputMode
+    }
+
     func getNextChar() -> Character? {
         stateLock.lock()
         let localSourceCode = safeSourceCode
@@ -381,14 +387,15 @@ class GhostState: ObservableObject {
     func getNextChunk() -> String {
         stateLock.lock()
         defer { stateLock.unlock() }
-        return _buildChunk(sourceCode: safeSourceCode, index: safeCurrentIndex, mode: safeInputMode)
+        return _buildChunk(sourceCode: safeSourceCode, index: safeCurrentIndex, mode: _safeInputMode)
     }
 
+    /// Read the next chunk without advancing. Used only by handleKeyDown to peek at \n.
     /// Atomically read the next chunk AND advance the pointer in one lock acquisition.
     /// This prevents a second concurrent keypress from claiming the same characters.
     func getAndAdvanceNextChunk() -> String {
         stateLock.lock()
-        let chunk = _buildChunk(sourceCode: safeSourceCode, index: safeCurrentIndex, mode: safeInputMode)
+        let chunk = _buildChunk(sourceCode: safeSourceCode, index: safeCurrentIndex, mode: _safeInputMode)
         if !chunk.isEmpty {
             safeCurrentIndex += chunk.count
             safeInjectionHistory.append(chunk.count)
