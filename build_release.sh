@@ -1,8 +1,8 @@
 #!/bin/bash
 set -e
 
-# Auto-extract GitHub token from remote URL if GITHUB_TOKEN isn't set in environment
-if [ -z "$GITHUB_TOKEN" ]; then
+# Auto-extract GitHub token from remote URL if GITHUB_TOKEN isn't set in environment or is the dummy token
+if [ -z "$GITHUB_TOKEN" ] || [ "$GITHUB_TOKEN" = "github_pat_antigravitydummytoken" ]; then
   REMOTE_URL=$(git remote get-url origin 2>/dev/null || true)
   if [[ "$REMOTE_URL" =~ https://([^@]+)@ ]]; then
     export GITHUB_TOKEN="${BASH_REMATCH[1]}"
