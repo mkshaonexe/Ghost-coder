@@ -29,7 +29,7 @@ fi
 # Step 2: Download the app package
 TEMP_DIR=$(mktemp -d)
 ZIP_PATH="${TEMP_DIR}/Ghost_Coder_macOS.zip"
-DOWNLOAD_URL="https://github.com/mkshaonexe/Ghost-coder/releases/download/${LATEST_RELEASE}/Ghost_Coder_macOS.zip"
+DOWNLOAD_URL="https://raw.githubusercontent.com/mkshaonexe/Ghost-coder/main/Ghost_Coder_macOS.zip"
 
 echo -e "\033[1;34m[2/5]\033[0m Downloading Ghost Coder package..."
 echo "  * URL: $DOWNLOAD_URL"
