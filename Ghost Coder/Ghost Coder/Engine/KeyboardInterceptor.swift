@@ -166,7 +166,6 @@ class KeyboardInterceptor {
         let passthroughKeyCodes: Set<Int> = [
             123, 124, 125, 126,  // Arrow keys (Left, Right, Down, Up)
             53,                   // Escape
-            48,                   // Tab (VS Code autocomplete navigation)
             117,                  // Forward Delete
             115, 119,             // Home, End
             116, 121,             // Page Up, Page Down
