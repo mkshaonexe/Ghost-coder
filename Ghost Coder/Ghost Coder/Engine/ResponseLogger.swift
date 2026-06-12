@@ -46,12 +46,13 @@ class ResponseLogger {
     private let responseLogURL: URL
     private let diagnosticLogURL: URL
     private let logQueue = DispatchQueue(label: "com.ghostcoder.logging", qos: .background)
+    // eventSequence is only ever accessed inside logQueue.async blocks on this serial queue —
+    // no additional lock needed.
     private var eventSequence = 0
-    private let sequenceLock = NSLock()
-    private let state: GhostState
     
     init(state: GhostState) {
-        self.state = state
+        // Extract only what we need; storing the full GhostState would create a retain cycle
+        // because GhostState already holds `var responseLogger: ResponseLogger?`.
         self.sessionId = state.sessionId
         
         let fileManager = FileManager.default
@@ -74,7 +75,7 @@ class ResponseLogger {
             guard let self = self else { return }
             
             // Get App version
-            let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.2.5"
+            let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.3.0"
             
             let metadata = SessionMetadata(
                 sessionId: self.sessionId,
@@ -159,9 +160,9 @@ class ResponseLogger {
                 let data = Data("\(message)\n".utf8)
                 if FileManager.default.fileExists(atPath: self.diagnosticLogURL.path) {
                     if let fileHandle = try? FileHandle(forWritingTo: self.diagnosticLogURL) {
-                        fileHandle.seekToEndOfFile()
-                        fileHandle.write(data)
-                        fileHandle.closeFile()
+                        defer { try? fileHandle.close() }
+                        try fileHandle.seekToEndOfFile()
+                        try fileHandle.write(contentsOf: data)
                     }
                 } else {
                     try data.write(to: self.diagnosticLogURL)
@@ -184,9 +185,9 @@ class ResponseLogger {
                 let data = Data("\(logMsg)\n".utf8)
                 if FileManager.default.fileExists(atPath: self.diagnosticLogURL.path) {
                     if let fileHandle = try? FileHandle(forWritingTo: self.diagnosticLogURL) {
-                        fileHandle.seekToEndOfFile()
-                        fileHandle.write(data)
-                        fileHandle.closeFile()
+                        defer { try? fileHandle.close() }
+                        try fileHandle.seekToEndOfFile()
+                        try fileHandle.write(contentsOf: data)
                     }
                 } else {
                     try data.write(to: self.diagnosticLogURL)
@@ -198,8 +199,7 @@ class ResponseLogger {
     }
     
     private func nextSequence() -> Int {
-        sequenceLock.lock()
-        defer { sequenceLock.unlock() }
+        // logQueue is a serial queue — only one block runs at a time, so no lock is needed.
         eventSequence += 1
         return eventSequence
     }
@@ -213,9 +213,9 @@ class ResponseLogger {
             
             if FileManager.default.fileExists(atPath: responseLogURL.path) {
                 if let fileHandle = try? FileHandle(forWritingTo: responseLogURL) {
-                    fileHandle.seekToEndOfFile()
-                    fileHandle.write(data)
-                    fileHandle.closeFile()
+                    defer { try? fileHandle.close() }
+                    try fileHandle.seekToEndOfFile()
+                    try fileHandle.write(contentsOf: data)
                 }
             } else {
                 try data.write(to: responseLogURL)
