@@ -193,9 +193,18 @@ class KeyboardInterceptor {
                 isInjecting = false
                 return nil  // Nothing to undo; swallow the backspace
             }
+            let physicalChar = event.getUnicodeString()
             injectionQueue.async { [weak self] in
                 guard let self else { return }
-                self.injector.handleBackspace()
+                if let undone = self.injector.handleBackspace() {
+                    self.state.responseLogger?.logUndoEvent(
+                        physicalKeyCode: keyCode,
+                        physicalFlags: flags,
+                        physicalChar: physicalChar,
+                        undoneChunkSize: undone.count,
+                        undoneText: undone.text
+                    )
+                }
                 self.isInjecting = false
             }
             return nil  // Block original backspace
