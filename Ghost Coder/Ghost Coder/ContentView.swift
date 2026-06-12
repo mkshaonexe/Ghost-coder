@@ -117,10 +117,15 @@ struct ContentView: View {
         VStack(alignment: .leading, spacing: 16) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Ghost Coder")
-                        .font(.custom("Avenir Next", size: 31))
-                        .fontWeight(.heavy)
-                        .foregroundStyle(.white)
+                    HStack(alignment: .lastTextBaseline, spacing: 8) {
+                        Text("Ghost Coder")
+                            .font(.custom("Avenir Next", size: 31))
+                            .fontWeight(.heavy)
+                            .foregroundStyle(.white)
+                        Text("v\(Bundle.main.infoDictionary?[\"CFBundleShortVersionString\"] as? String ?? \"1.2.1\")")
+                            .font(.system(size: 14, weight: .semibold, design: .rounded))
+                            .foregroundStyle(Color.white.opacity(0.5))
+                    }
                     Text("A focused keystroke mirror for source-driven coding demos.")
                         .font(.system(size: 13, weight: .medium, design: .rounded))
                         .foregroundStyle(Color.white.opacity(0.72))
