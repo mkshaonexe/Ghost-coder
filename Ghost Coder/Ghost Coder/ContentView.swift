@@ -11,7 +11,7 @@ struct ContentView: View {
     @ObservedObject var state: GhostState
 
     private var appVersion: String {
-        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.3.1"
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.4.0"
     }
 
     var body: some View {
@@ -78,6 +78,7 @@ struct ContentView: View {
                                     PermissionsSection(state: state)
                                     TargetSection(state: state)
                                     ModeSection(state: state)
+                                    KeystrokeLogSection(state: state)
                                     DiagnosticsSection(state: state)
                                 }
                                 .padding(.trailing, 6)
@@ -99,6 +100,7 @@ struct ContentView: View {
                                 TargetSection(state: state)
                                 ModeSection(state: state)
                                 ProgressSection(state: state)
+                                KeystrokeLogSection(state: state)
                                 DiagnosticsSection(state: state)
                             }
                             .padding(.trailing, 2)

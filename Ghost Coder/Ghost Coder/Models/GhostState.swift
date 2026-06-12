@@ -8,6 +8,26 @@
 import Foundation
 import Combine
 
+// MARK: - Keystroke Log Entry (displayed in UI)
+struct KeystrokeLogEntry: Identifiable {
+    let id: Int          // seq number
+    let timestamp: String
+    let type: KeystrokeLogType
+    let physicalKey: String   // e.g. "t" or "[BS]"
+    let injectedText: String  // what was virtually typed (may be multi-char)
+    let chunkSize: Int
+    let mode: String
+    let targetApp: String
+    let sourceFile: String
+    let workspaceFolder: String
+}
+
+enum KeystrokeLogType {
+    case injection   // normal keystroke → virtual output
+    case undo        // backspace → undo
+    case blocked     // key was swallowed with no output
+}
+
 enum InputMode: String, CaseIterable, Identifiable {
     case character = "Character"
     case word = "Word"
@@ -101,6 +121,7 @@ class GhostState: ObservableObject {
     @Published var frontmostAppName: String = "None"
     @Published var frontmostWindowMainTitle: String = "None"
     @Published var diagnosticLogs: [String] = []
+    @Published var keystrokeLogs: [KeystrokeLogEntry] = []
     
     @Published var currentIndex: Int = 0 {
         didSet {
@@ -124,6 +145,17 @@ class GhostState: ObservableObject {
             self.diagnosticLogs.insert(formattedMessage, at: 0)
             if self.diagnosticLogs.count > 200 {
                 self.diagnosticLogs.removeLast()
+            }
+        }
+    }
+
+    // MARK: - Keystroke Log Appending (thread-safe, called from injection queue)
+    func appendKeystrokeLog(_ entry: KeystrokeLogEntry) {
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            self.keystrokeLogs.insert(entry, at: 0)
+            if self.keystrokeLogs.count > 500 {
+                self.keystrokeLogs.removeLast()
             }
         }
     }

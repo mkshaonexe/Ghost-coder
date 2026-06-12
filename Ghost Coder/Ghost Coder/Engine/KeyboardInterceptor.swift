@@ -211,6 +211,7 @@ class KeyboardInterceptor {
             injectionQueue.async { [weak self] in
                 guard let self else { return }
                 if let undone = self.injector.handleBackspace() {
+                    let seq = self.state.keystrokeLogs.first.map { $0.id + 1 } ?? 1
                     self.state.responseLogger?.logUndoEvent(
                         physicalKeyCode: keyCode,
                         physicalFlags: flags,
@@ -218,6 +219,19 @@ class KeyboardInterceptor {
                         undoneChunkSize: undone.count,
                         undoneText: undone.text
                     )
+                    let entry = KeystrokeLogEntry(
+                        id: seq,
+                        timestamp: self.formattedTimestamp(),
+                        type: .undo,
+                        physicalKey: "[BS]",
+                        injectedText: undone.text,
+                        chunkSize: undone.count,
+                        mode: self.state.safeInputMode.rawValue,
+                        targetApp: self.state.frontmostAppName,
+                        sourceFile: self.state.sourceFileName,
+                        workspaceFolder: self.state.workspaceFolderPath
+                    )
+                    self.state.appendKeystrokeLog(entry)
                 }
                 self.isInjecting = false
             }
@@ -258,6 +272,39 @@ class KeyboardInterceptor {
                 mode: self.state.safeInputMode.rawValue
             )
 
+            // Build live UI keystroke log entry
+            let seq = (self.state.keystrokeLogs.first?.id ?? 0) + 1
+            let displayPhysical: String
+            if let p = physicalChar, !p.isEmpty {
+                displayPhysical = p == "\n" ? "[↵]" : (p == " " ? "[SP]" : p)
+            } else {
+                displayPhysical = "[?]"
+            }
+            let displayInjected: String
+            if chunk.count <= 40 {
+                displayInjected = chunk
+                    .replacingOccurrences(of: "\n", with: "⏎")
+                    .replacingOccurrences(of: "\t", with: "→")
+            } else {
+                let preview = String(chunk.prefix(37))
+                    .replacingOccurrences(of: "\n", with: "⏎")
+                    .replacingOccurrences(of: "\t", with: "→")
+                displayInjected = preview + "..."
+            }
+            let entry = KeystrokeLogEntry(
+                id: seq,
+                timestamp: self.formattedTimestamp(),
+                type: .injection,
+                physicalKey: displayPhysical,
+                injectedText: displayInjected,
+                chunkSize: chunk.count,
+                mode: self.state.safeInputMode.rawValue,
+                targetApp: self.state.frontmostAppName,
+                sourceFile: self.state.sourceFileName,
+                workspaceFolder: self.state.workspaceFolderPath
+            )
+            self.state.appendKeystrokeLog(entry)
+
             // Notify HotFixEngine — reads the live index at execution time so that
             // any additional keypresses that ran between scheduling and execution
             // are already counted in safeCurrentIndexValue.
@@ -273,6 +320,12 @@ class KeyboardInterceptor {
         }
 
         return nil  // Block the original keypress
+    }
+
+    private func formattedTimestamp() -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm:ss.SSS"
+        return formatter.string(from: Date())
     }
 }
 
