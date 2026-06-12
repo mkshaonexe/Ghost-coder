@@ -12,13 +12,28 @@ class KeyboardInterceptor {
     private var eventTap: CFMachPort?
     private var runLoopSource: CFRunLoopSource?
     private var watchdogTimer: Timer?
+    private var permissionRetryTimer: Timer?
 
     private let state: GhostState
     private let injector: CharacterInjector
 
     // Serial queue: one injection at a time; subsequent keypresses are blocked while injecting
     let injectionQueue = DispatchQueue(label: "com.ghostcoder.injection", qos: .userInteractive)
-    var isInjecting: Bool = false  // read/written on main thread via DispatchQueue.main
+    
+    private let interceptorLock = NSLock()
+    private var _isInjecting: Bool = false
+    var isInjecting: Bool {
+        get {
+            interceptorLock.lock()
+            defer { interceptorLock.unlock() }
+            return _isInjecting
+        }
+        set {
+            interceptorLock.lock()
+            _isInjecting = newValue
+            interceptorLock.unlock()
+        }
+    }
 
     init(state: GhostState) {
         self.state = state
@@ -28,7 +43,24 @@ class KeyboardInterceptor {
     // MARK: - Start / Stop
 
     func start() {
-        guard checkAccessibilityPermission() else { return }
+        guard eventTap == nil else { return }
+
+        guard checkAccessibilityPermission() else {
+            if permissionRetryTimer == nil {
+                permissionRetryTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+                    guard let self = self else { return }
+                    if self.checkAccessibilityPermission() {
+                        self.permissionRetryTimer?.invalidate()
+                        self.permissionRetryTimer = nil
+                        self.start()
+                    }
+                }
+            }
+            return
+        }
+
+        permissionRetryTimer?.invalidate()
+        permissionRetryTimer = nil
 
         let eventMask = CGEventMask(
             (1 << CGEventType.keyDown.rawValue)
@@ -69,6 +101,9 @@ class KeyboardInterceptor {
     }
 
     func stop() {
+        permissionRetryTimer?.invalidate()
+        permissionRetryTimer = nil
+        
         watchdogTimer?.invalidate()
         watchdogTimer = nil
         if let tap = eventTap {
@@ -135,7 +170,7 @@ class KeyboardInterceptor {
 
         // --- Rule 3: Backspace (keyCode 51) ---
         if keyCode == 51 {
-            guard !state.injectionHistory.isEmpty else {
+            guard !state.isHistoryEmpty else {
                 return nil  // Nothing to undo; swallow the backspace
             }
             isInjecting = true
@@ -149,13 +184,7 @@ class KeyboardInterceptor {
         // --- Rule 4: Enter/Return (keyCode 36) ---
         // Pass through Enter unless the next source character is \n
         if keyCode == 36 {
-            guard state.currentIndex < state.sourceCode.count else {
-                return Unmanaged.passUnretained(event)
-            }
-            let nextChar = state.sourceCode[
-                state.sourceCode.index(state.sourceCode.startIndex, offsetBy: state.currentIndex)
-            ]
-            if nextChar != "\n" {
+            if state.getNextChar() != "\n" {
                 return Unmanaged.passUnretained(event)
             }
             // Fall through to injection logic below — treat as a normal injection key
@@ -167,17 +196,25 @@ class KeyboardInterceptor {
             return Unmanaged.passUnretained(event)  // Source exhausted; pass through
         }
 
-        // Update state pointer and history on main thread
+        // Update state pointer and history thread-safely
         let count = chunk.count
-        state.injectionHistory.append(count)
-        state.currentIndex += count
-        state.updateCachedActiveState()
+        if Thread.isMainThread {
+            self.state.injectionHistory.append(count)
+            self.state.currentIndex += count
+            self.state.updateCachedActiveState()
+        } else {
+            DispatchQueue.main.sync {
+                self.state.injectionHistory.append(count)
+                self.state.currentIndex += count
+                self.state.updateCachedActiveState()
+            }
+        }
 
         // Inject asynchronously
-        isInjecting = true
+        isInjectingSafe = true
         injectionQueue.async { [weak self] in
             self?.injector.injectString(chunk)
-            DispatchQueue.main.async { self?.isInjecting = false }
+            self?.isInjectingSafe = false
         }
 
         return nil  // Block the original keypress
