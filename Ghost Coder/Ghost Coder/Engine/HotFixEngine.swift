@@ -36,12 +36,12 @@ class HotFixEngine {
     // MARK: - Micro-fix line counter
 
     private var newlinesSinceLastMicroFix: Int = 0
-    private let microFixLineThreshold: Int = 5
+    private let microFixLineThreshold: Int = 10
 
     // MARK: - Milestone tracking
 
     private var triggeredMilestones: Set<Int> = []
-    private let milestonePercentages: [Int] = [15, 50, 75, 99, 100]
+    private let milestonePercentages: [Int] = [25, 50, 75, 90, 99, 100]
 
     // MARK: - Init
 
@@ -238,13 +238,13 @@ class HotFixEngine {
         Thread.sleep(forTimeInterval: 0.05)
 
         synthesizeKey(keyCode: 0, flags: .maskCommand)   // Cmd+A  (keyCode 0 = A)
-        Thread.sleep(forTimeInterval: 0.10)
+        Thread.sleep(forTimeInterval: 0.60)
 
         synthesizeKey(keyCode: 9, flags: .maskCommand)   // Cmd+V  (keyCode 9 = V)
-        Thread.sleep(forTimeInterval: 0.15)
+        Thread.sleep(forTimeInterval: 0.35)
 
         // Restore previous clipboard content asynchronously
-        DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + 0.5) {
+        DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + 1.5) {
             pasteboard.clearContents()
             if let prev = previousString {
                 pasteboard.setString(prev, forType: .string)
