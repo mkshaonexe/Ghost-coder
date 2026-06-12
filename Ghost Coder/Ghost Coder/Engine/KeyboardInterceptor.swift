@@ -149,8 +149,17 @@ class KeyboardInterceptor {
             return Unmanaged.passUnretained(event)  // pass through
         }
 
-        // If currently injecting (word/line mode multi-char), block incoming key silently
-        if isInjecting {
+        // Atomically check and claim the injection lock.
+        // If we are already injecting, block incoming key silently.
+        let wasInjecting = injectionLock.withLock { isInjecting in
+            if isInjecting {
+                return true
+            }
+            isInjecting = true
+            return false
+        }
+
+        if wasInjecting {
             return nil
         }
 
@@ -159,6 +168,7 @@ class KeyboardInterceptor {
 
         // --- Rule 1: Any Cmd+key combination → always pass through ---
         if flags.contains(.maskCommand) {
+            isInjecting = false
             return Unmanaged.passUnretained(event)
         }
 
@@ -173,20 +183,20 @@ class KeyboardInterceptor {
             122, 120, 99, 118, 96, 97, 98, 100, 101, 109, 103, 111
         ]
         if passthroughKeyCodes.contains(keyCode) {
+            isInjecting = false
             return Unmanaged.passUnretained(event)
         }
 
         // --- Rule 3: Backspace (keyCode 51) ---
         if keyCode == 51 {
             guard !state.isHistoryEmpty else {
+                isInjecting = false
                 return nil  // Nothing to undo; swallow the backspace
             }
-            isInjecting = true
             injectionQueue.async { [weak self] in
                 guard let self else { return }
-                self.injector.handleBackspace(on: self.injectionQueue) { [weak self] in
-                    self?.isInjecting = false
-                }
+                self.injector.handleBackspace()
+                self.isInjecting = false
             }
             return nil  // Block original backspace
         }
@@ -195,6 +205,7 @@ class KeyboardInterceptor {
         // Pass through Enter unless the next source character is \n
         if keyCode == 36 {
             if state.getNextChar() != "\n" {
+                isInjecting = false
                 return Unmanaged.passUnretained(event)
             }
             // Fall through to injection logic below — treat as a normal injection key
@@ -205,16 +216,16 @@ class KeyboardInterceptor {
         // This prevents a second keypress from stealing the same chunk before we advance.
         let chunk = state.getAndAdvanceNextChunk()
         guard !chunk.isEmpty else {
+            isInjecting = false
             return Unmanaged.passUnretained(event)  // Source exhausted; pass through
         }
 
         // Inject asynchronously so the tap callback returns immediately
-        isInjecting = true
+        // Note: isInjecting is already set to true
         injectionQueue.async { [weak self] in
             guard let self else { return }
-            self.injector.injectString(chunk, on: self.injectionQueue) { [weak self] in
-                self?.isInjecting = false
-            }
+            self.injector.injectString(chunk)
+            self.isInjecting = false
         }
 
         return nil  // Block the original keypress

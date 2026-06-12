@@ -79,7 +79,13 @@ class GhostState: ObservableObject {
     @Published var isInputMonitoringGranted: Bool = false
     /// When enabled, Ghost Coder uses the Auto-Close Skip Buffer to avoid
     /// doubling brackets/quotes that the IDE already auto-inserted.
-    @Published var enableAutoCloseSkip: Bool = true
+    @Published var enableAutoCloseSkip: Bool = true {
+        didSet {
+            stateLock.lock()
+            _safeEnableAutoCloseSkip = enableAutoCloseSkip
+            stateLock.unlock()
+        }
+    }
     @Published var frontmostAppName: String = "None"
     @Published var frontmostWindowMainTitle: String = "None"
     @Published var diagnosticLogs: [String] = []
@@ -122,6 +128,7 @@ class GhostState: ObservableObject {
     private var safeInputMode: InputMode = .character
     private var safeInjectionDelayMs: Int = 12
     private var safeInjectionHistory: [Int] = []
+    private var _safeEnableAutoCloseSkip: Bool = true
 
     // MARK: - Cached active flag (read by CGEventTap callback — Bool is single-word, atomic on Apple Silicon)
     // Written exclusively on the main thread by WindowMonitor.
@@ -296,17 +303,28 @@ class GhostState: ObservableObject {
         }
     }
 
-    func popLastInjection() -> Int? {
+    func popLastInjection() -> (count: Int, text: String)? {
         stateLock.lock()
         guard let count = safeInjectionHistory.popLast() else {
             stateLock.unlock()
             return nil
         }
-        safeCurrentIndex = max(0, safeCurrentIndex - count)
+        let poppedIndex = max(0, safeCurrentIndex - count)
+        
+        let text: String
+        if poppedIndex + count <= safeSourceCode.count {
+            let startIndex = safeSourceCode.index(safeSourceCode.startIndex, offsetBy: poppedIndex)
+            let endIndex = safeSourceCode.index(startIndex, offsetBy: count)
+            text = String(safeSourceCode[startIndex..<endIndex])
+        } else {
+            text = ""
+        }
+        
+        safeCurrentIndex = poppedIndex
         let newIndex = safeCurrentIndex
         stateLock.unlock()
 
-        log("Undid last injection: removed \(count) chars, pointer now at \(newIndex)")
+        log("Undid last injection: removed \(count) chars ('\(text)'), pointer now at \(newIndex)")
 
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
@@ -317,7 +335,7 @@ class GhostState: ObservableObject {
             self.updateCachedActiveState()
         }
 
-        return count
+        return (count, text)
     }
 
     var isHistoryEmpty: Bool {
@@ -330,6 +348,12 @@ class GhostState: ObservableObject {
         stateLock.lock()
         defer { stateLock.unlock() }
         return safeInjectionDelayMs
+    }
+
+    var safeEnableAutoCloseSkip: Bool {
+        stateLock.lock()
+        defer { stateLock.unlock() }
+        return _safeEnableAutoCloseSkip
     }
 
     func getNextChar() -> Character? {
