@@ -87,7 +87,9 @@ class GhostState: ObservableObject {
     // Each entry = number of characters injected in one keypress
     var injectionHistory: [Int] = []
 
-    // Thread-safety locks and safe mirror variables
+    // MARK: - Thread-safety: NSLock + shadow variables
+    // All state consumed by CGEventTap callbacks uses these safe mirrors.
+    // The @Published variants are only touched on the main thread (UI layer).
     private let stateLock = NSLock()
     private var safeCurrentIndex: Int = 0
     private var safeSourceCode: String = ""
@@ -95,8 +97,8 @@ class GhostState: ObservableObject {
     private var safeInjectionDelayMs: Int = 12
     private var safeInjectionHistory: [Int] = []
 
-    // MARK: - Cached active flag (read by CGEventTap callback — must be thread-safe)
-    // Updated on main thread by WindowMonitor. Read on tap thread (Bool is atomic on Apple platforms).
+    // MARK: - Cached active flag (read by CGEventTap callback — Bool is single-word, atomic on Apple Silicon)
+    // Written exclusively on the main thread by WindowMonitor.
     private(set) var isActiveCached: Bool = false
 
     // MARK: - Computed Properties
@@ -183,7 +185,7 @@ class GhostState: ObservableObject {
 
     // MARK: - State Updates
     func updateCachedActiveState() {
-        // Called on main thread by WindowMonitor every 150ms
+        // Must be called on main thread (touches @Published properties + isActiveCached)
         isActiveCached = isGhostModeEnabled
             && isSourceLoaded
             && currentIndex < sourceCode.count
@@ -191,9 +193,21 @@ class GhostState: ObservableObject {
             && isFolderScopeActive
     }
 
+    // MARK: - Source File Loading
+
     func loadSourceFile(url: URL) throws {
-        let content = try String(contentsOf: url, encoding: .utf8)
-        
+        // Try UTF-8 first (most source files); fall back to system default encoding
+        let content: String
+        do {
+            content = try String(contentsOf: url, encoding: .utf8)
+        } catch {
+            // Attempt system-preferred encoding as fallback (handles latin-1 / legacy files)
+            guard let fallback = try? String(contentsOf: url, encoding: .isoLatin1) else {
+                throw error  // Re-throw the original UTF-8 error with full info
+            }
+            content = fallback
+        }
+
         stateLock.lock()
         safeSourceCode = content
         safeCurrentIndex = 0
@@ -202,7 +216,7 @@ class GhostState: ObservableObject {
 
         sourceCode = content
         sourceFileName = url.lastPathComponent
-        isGhostModeEnabled = false // Auto-pause
+        isGhostModeEnabled = false // Auto-pause when new file is loaded
         reset()
         updateCachedActiveState()
     }
@@ -232,17 +246,19 @@ class GhostState: ObservableObject {
     }
 
     // MARK: - Thread-safe State Modifiers (called from background/tap threads)
+
     func advanceIndex(by count: Int) {
         stateLock.lock()
         safeCurrentIndex += count
         safeInjectionHistory.append(count)
         let newIndex = safeCurrentIndex
+        let historySnapshot = safeInjectionHistory
         stateLock.unlock()
-        
+
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
             self.currentIndex = newIndex
-            self.injectionHistory = self.safeInjectionHistory
+            self.injectionHistory = historySnapshot
             self.updateCachedActiveState()
         }
     }
@@ -253,17 +269,18 @@ class GhostState: ObservableObject {
             stateLock.unlock()
             return nil
         }
-        safeCurrentIndex -= count
+        safeCurrentIndex = max(0, safeCurrentIndex - count)
         let newIndex = safeCurrentIndex
+        let historySnapshot = safeInjectionHistory
         stateLock.unlock()
-        
+
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
             self.currentIndex = newIndex
-            self.injectionHistory = self.safeInjectionHistory
+            self.injectionHistory = historySnapshot
             self.updateCachedActiveState()
         }
-        
+
         return count
     }
 
@@ -290,7 +307,7 @@ class GhostState: ObservableObject {
         return localSourceCode[index]
     }
 
-    // MARK: - Chunk Calculation (called on main/tap thread, fast — no IO)
+    // MARK: - Chunk Calculation (lock-protected, safe to call from any thread)
     func getNextChunk() -> String {
         stateLock.lock()
         let localSourceCode = safeSourceCode

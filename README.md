@@ -72,7 +72,10 @@ Because Ghost Coder hooks keyboard input using `CGEventTap` to replace keystroke
 ## Tech Stack & Architecture
 
 - **UI**: SwiftUI + AppKit
-- **Event Loop Hook**: Low-level event tap `CGEvent.tapCreate` using `.cghidEventTap` to capture and swallow raw `.keyDown` events.
-- **Safety Watchdog**: A background watchdog timer verifies the health of the event tap every 5 seconds, auto-restarting the tap if macOS silently disables it.
-- **Multithreading**: Interception callbacks execute instantly on the main thread, while Unicode character streaming runs asynchronously on a serial background queue (`DispatchQueue`) to avoid blocking system-wide input.
-- **Universal Binary**: Compiles for Apple Silicon (M1/M2/M3) and Intel CPUs (macOS 13.0+).
+- **Event Capture**: A `CGEvent.tapCreate` tap at `.cghidEventTap` (highest system priority) intercepts and swallows raw `.keyDown` events before they reach any application.
+- **Event Injection**: Synthetic keystrokes are posted back at `.cgSessionEventTap` so they bypass the Ghost Coder tap entirely and go directly to the frontmost application — avoiding infinite re-entry.
+- **Thread Safety**: All state consumed by the CGEventTap callback is protected by `NSLock`-backed shadow variables. `@Published` properties are only mutated on the main thread. `isActiveCached` is written on the main thread and is a single-word `Bool` (atomic on Apple Silicon).
+- **Safety Watchdog**: A background timer verifies the health of the event tap every 5 seconds and re-enables it if macOS silently disables it (a known macOS behaviour for unresponsive taps).
+- **Accessibility Retry**: If Accessibility permission is not yet granted at launch, a 1-second polling timer retries `start()` automatically — no app relaunch required after granting permission.
+- **Multithreading**: Interception callbacks return immediately from the tap thread while Unicode character streaming runs asynchronously on a dedicated serial background queue (`DispatchQueue`) to avoid blocking system-wide input.
+- **Universal Binary**: Compiles for Apple Silicon (M1/M2/M3/M4) and Intel CPUs (macOS 13.0+).

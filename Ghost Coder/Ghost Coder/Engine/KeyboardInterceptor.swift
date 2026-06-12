@@ -19,7 +19,8 @@ class KeyboardInterceptor {
 
     // Serial queue: one injection at a time; subsequent keypresses are blocked while injecting
     let injectionQueue = DispatchQueue(label: "com.ghostcoder.injection", qos: .userInteractive)
-    
+
+    // NSLock-protected isInjecting flag — safe to read/write from any thread
     private let interceptorLock = NSLock()
     private var _isInjecting: Bool = false
     var isInjecting: Bool {
@@ -46,6 +47,7 @@ class KeyboardInterceptor {
         guard eventTap == nil else { return }
 
         guard checkAccessibilityPermission() else {
+            // No retry timer already running — start one that polls every second
             if permissionRetryTimer == nil {
                 permissionRetryTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
                     guard let self = self else { return }
@@ -84,6 +86,11 @@ class KeyboardInterceptor {
 
         guard let tap = eventTap else {
             print("Ghost Coder: Failed to create CGEventTap. Check Accessibility permissions.")
+            // Retry after a short delay in case the system needs a moment
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
+                self?.eventTap = nil
+                self?.start()
+            }
             return
         }
 
@@ -95,6 +102,7 @@ class KeyboardInterceptor {
         watchdogTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { [weak self] _ in
             guard let tap = self?.eventTap else { return }
             if !CGEvent.tapIsEnabled(tap: tap) {
+                print("Ghost Coder: Watchdog re-enabling disabled event tap.")
                 CGEvent.tapEnable(tap: tap, enable: true)
             }
         }
@@ -103,7 +111,7 @@ class KeyboardInterceptor {
     func stop() {
         permissionRetryTimer?.invalidate()
         permissionRetryTimer = nil
-        
+
         watchdogTimer?.invalidate()
         watchdogTimer = nil
         if let tap = eventTap {
@@ -127,7 +135,7 @@ class KeyboardInterceptor {
         return false
     }
 
-    // MARK: - Event Handler (called on main thread, must return fast)
+    // MARK: - Event Handler (called on CGEventTap callback thread — must return fast)
 
     private func handleKeyDown(
         proxy: CGEventTapProxy,
@@ -135,7 +143,7 @@ class KeyboardInterceptor {
         event: CGEvent
     ) -> Unmanaged<CGEvent>? {
 
-        // Check cached active state — pure Bool read, thread-safe
+        // Check cached active state — Bool read is atomic on Apple platforms (single-word)
         guard state.isActiveCached else {
             return Unmanaged.passUnretained(event)  // pass through
         }
@@ -200,7 +208,7 @@ class KeyboardInterceptor {
         let count = chunk.count
         state.advanceIndex(by: count)
 
-        // Inject asynchronously
+        // Inject asynchronously so the tap callback returns immediately
         isInjecting = true
         injectionQueue.async { [weak self] in
             self?.injector.injectString(chunk)

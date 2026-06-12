@@ -22,9 +22,9 @@ struct TargetSection: View {
                     Text("Target IDE")
                         .font(.body)
                         .foregroundStyle(.white)
-                    
+
                     Spacer()
-                    
+
                     Picker("", selection: $state.ideTarget) {
                         ForEach(IDETarget.allCases) { target in
                             Text(target.rawValue).tag(target)
@@ -33,34 +33,34 @@ struct TargetSection: View {
                     .pickerStyle(.menu)
                     .frame(width: 160)
                     .labelsHidden()
-                    .onChange(of: state.ideTarget) { _ in
+                    .onChange(of: state.ideTarget) {
                         state.updateCachedActiveState()
                     }
                 }
-                
+
                 Divider()
-                
+
                 VStack(alignment: .leading, spacing: 6) {
                     HStack {
                         Text("Workspace Folder Path")
                             .font(.body)
                             .foregroundStyle(.white)
-                        
+
                         Spacer()
-                        
+
                         Text("(Optional)")
                             .font(.caption)
                             .foregroundStyle(Color.white.opacity(0.58))
                     }
-                    
+
                     HStack(spacing: 8) {
                         TextField("e.g. /Users/username/projects/my-app", text: $state.workspaceFolderPath)
                             .textFieldStyle(.roundedBorder)
                             .font(.system(.body, design: .monospaced))
-                            .onChange(of: state.workspaceFolderPath) { _ in
+                            .onChange(of: state.workspaceFolderPath) {
                                 state.updateCachedActiveState()
                             }
-                        
+
                         Button(action: selectFolder) {
                             Image(systemName: "folder.badge.plus")
                         }
@@ -106,7 +106,7 @@ struct TargetSection: View {
         panel.canChooseDirectories = true
         panel.canChooseFiles = false
         panel.canCreateDirectories = false
-        
+
         if panel.runModal() == .OK, let url = panel.url {
             state.workspaceFolderPath = url.path
             state.updateCachedActiveState()

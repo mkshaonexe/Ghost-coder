@@ -18,11 +18,19 @@ class GlobalHotkey {
         self.interceptor = interceptor
     }
 
+    deinit {
+        unregister()
+    }
+
     func register() {
         // Global monitor: fires even when app is not focused
         globalMonitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
             self?.handleEvent(event)
         }
+        if globalMonitor == nil {
+            print("Ghost Coder: GlobalHotkey — addGlobalMonitorForEvents returned nil. Input Monitoring permission may be required.")
+        }
+
         // Local monitor: fires when app's own window is focused
         localMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
             self?.handleEvent(event)
@@ -31,8 +39,8 @@ class GlobalHotkey {
     }
 
     func unregister() {
-        if let gm = globalMonitor { NSEvent.removeMonitor(gm) }
-        if let lm = localMonitor  { NSEvent.removeMonitor(lm) }
+        if let gm = globalMonitor { NSEvent.removeMonitor(gm); globalMonitor = nil }
+        if let lm = localMonitor  { NSEvent.removeMonitor(lm); localMonitor = nil }
     }
 
     private func handleEvent(_ event: NSEvent) {
@@ -51,6 +59,7 @@ class GlobalHotkey {
                     .forEach { $0.orderOut(nil) }
             } else {
                 // Show main window when Ghost Mode deactivates
+                NSApp.activate(ignoringOtherApps: true)
                 NSApp.windows.filter { $0.title == "Ghost Coder" || $0.identifier?.rawValue == "mainWindow" }
                     .forEach { $0.makeKeyAndOrderFront(nil) }
             }

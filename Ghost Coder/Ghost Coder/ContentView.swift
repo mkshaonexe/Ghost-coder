@@ -173,11 +173,16 @@ struct ContentView: View {
         withAnimation {
             state.isGhostModeEnabled.toggle()
             state.updateCachedActiveState()
-            
-            // Automatically hide window if activated
+
+            // Bug #8 fix: Hide the window *after* a brief delay to allow the IDE
+            // to receive focus and WindowMonitor to complete its first activation check.
+            // This ensures the event tap is active before the first user keystroke.
             if state.isGhostModeEnabled {
-                NSApp.windows.filter { $0.title == "Ghost Coder" || $0.identifier?.rawValue == "mainWindow" }
-                    .forEach { $0.orderOut(nil) }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.20) {
+                    NSApp.windows
+                        .filter { $0.title == "Ghost Coder" || $0.identifier?.rawValue == "mainWindow" }
+                        .forEach { $0.orderOut(nil) }
+                }
             }
         }
     }
