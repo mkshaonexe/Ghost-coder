@@ -43,11 +43,26 @@ class HotFixEngine {
     private var triggeredMilestones: Set<Int> = []
     private let milestonePercentages: [Int] = [25, 50, 75, 90, 99, 100]
 
+    // MARK: - Polling Timer
+
+    private var pollingTimer: Timer?
+
     // MARK: - Init
 
     init(state: GhostState, interceptor: KeyboardInterceptor) {
         self.state = state
         self.interceptor = interceptor
+
+        // Setup recurring 1.5s background polling timer
+        DispatchQueue.main.async { [weak self] in
+            self?.pollingTimer = Timer.scheduledTimer(withTimeInterval: 1.5, repeats: true) { [weak self] _ in
+                self?.checkDriftInBackground()
+            }
+        }
+    }
+
+    deinit {
+        pollingTimer?.invalidate()
     }
 
     // MARK: - Reset (called when a new source file is loaded / pointer reset)
@@ -165,6 +180,56 @@ class HotFixEngine {
                 performSelectAndReplace(content: expectedContent, reason: reason)
             } else {
                 state.log("HotFix [\(reason)]: cannot read editor — skipping micro fix")
+            }
+        }
+    }
+
+    // MARK: - Background Polling
+
+    private func checkDriftInBackground() {
+        // Only run if active, not already hot-fixing, and source is loaded
+        guard state.isGhostModeEnabled && state.isSourceLoaded else { return }
+        guard !state.isHotFixRunning else { return }
+
+        let targetPath = state.safeTargetFilePathValue
+        guard !targetPath.isEmpty else { return }
+
+        // Check window monitor states are met (isActiveCached requires active + focused + scopes matched)
+        guard state.isActiveCached else { return }
+
+        // Dispatch onto the serial injectionQueue to run safely with normal injections
+        guard let queue = interceptor?.injectionQueue else { return }
+
+        queue.async { [weak self] in
+            guard let self = self else { return }
+
+            // Double check running state inside queue
+            guard !self.state.isHotFixRunning else { return }
+
+            let execIndex = self.state.safeCurrentIndexValue
+            let execTotal = self.state.safeSourceLength
+
+            // Only validate if we have already started typing (currentIndex > 0)
+            guard execIndex > 0 else { return }
+
+            let sourceCode = self.state.safeSourceCodeCopy
+            guard !sourceCode.isEmpty else { return }
+
+            // Expected content up to current pointer
+            let safeIdx = min(execIndex, sourceCode.count)
+            let endIdx = sourceCode.index(sourceCode.startIndex, offsetBy: safeIdx)
+            let expectedContent = String(sourceCode[..<endIdx])
+
+            // Read actual file content from disk
+            guard let actualContent = self.readEditorContent() else { return }
+
+            // Compare
+            if actualContent != expectedContent {
+                self.state.log("Background Polling: ⚠️ Drift detected between target file on disk and expected content. Launching correction...")
+                self.runHotFix(currentIndex: execIndex,
+                               totalLength: execTotal,
+                               reason: "bg-poll",
+                               isMilestone: true)
             }
         }
     }
