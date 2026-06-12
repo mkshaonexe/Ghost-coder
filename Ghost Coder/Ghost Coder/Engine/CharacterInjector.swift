@@ -45,25 +45,57 @@ class CharacterInjector {
 
     // MARK: - Inject a string of characters (runs on injectionQueue)
 
-    func injectString(_ text: String) {
+    func injectString(_ text: String, on queue: DispatchQueue? = nil, completion: (() -> Void)? = nil) {
         let delaySeconds = Double(state.safeDelayMs) / 1000.0
-        let isMultiChar = text.count > 1
+        let chars = Array(text)
+        let isMultiChar = chars.count > 1
 
         // Issue 1: If the chunk contains a newline, deliver the whole thing via
         // clipboard paste so VS Code's auto-indent engine never fires.
         if text.contains("\n") {
             pasteViaClipboard(text)
+            completion?()
             return
         }
 
-        for char in text {
-            injectUnicodeCharacter(char)
+        guard let targetQueue = queue else {
+            // Fallback: run synchronously on current thread (like before)
+            for char in text {
+                injectUnicodeCharacter(char)
+                if isMultiChar {
+                    Thread.sleep(forTimeInterval: delaySeconds)
+                }
+            }
+            completion?()
+            return
+        }
 
-            if isMultiChar {
+        func injectNext(index: Int) {
+            // Check if Ghost Mode was disabled during injection and abort if needed
+            guard state.isGhostModeEnabled else {
+                completion?()
+                return
+            }
+
+            guard index < chars.count else {
+                completion?()
+                return
+            }
+
+            injectUnicodeCharacter(chars[index])
+
+            let nextIndex = index + 1
+            if isMultiChar && nextIndex < chars.count {
                 // Small delay between characters in word/line mode so VS Code processes each
-                Thread.sleep(forTimeInterval: delaySeconds)
+                targetQueue.asyncAfter(deadline: .now() + delaySeconds) {
+                    injectNext(index: nextIndex)
+                }
+            } else {
+                completion?()
             }
         }
+
+        injectNext(index: 0)
     }
 
     // MARK: - Unicode Character Injection (layout-independent)
@@ -71,14 +103,17 @@ class CharacterInjector {
     private func injectUnicodeCharacter(_ char: Character) {
         // Issue 2: Check if the IDE already auto-inserted this closing char.
         // If so, skip injection and press Right Arrow to move past it.
-        autoCloseLock.lock()
-        if let first = autoCloseSkipBuffer.first, first == char {
-            autoCloseSkipBuffer.removeFirst()
+        // Only active when the user has enabled the Auto-Close Skip feature.
+        if state.enableAutoCloseSkip {
+            autoCloseLock.lock()
+            if let first = autoCloseSkipBuffer.first, first == char {
+                autoCloseSkipBuffer.removeFirst()
+                autoCloseLock.unlock()
+                injectVirtualKey(keyCode: 124) // Right Arrow — navigate past IDE's auto-closer
+                return
+            }
             autoCloseLock.unlock()
-            injectVirtualKey(keyCode: 124) // Right Arrow — navigate past IDE's auto-closer
-            return
         }
-        autoCloseLock.unlock()
 
         // Issue 3: Characters whose UTF-16 representation is longer than 2 units
         // (surrogate pairs, flag emoji, combining sequences) must go via clipboard
@@ -180,15 +215,47 @@ class CharacterInjector {
 
     // MARK: - Backspace Undo
 
-    func handleBackspace() {
-        guard let lastChunkSize = state.popLastInjection() else { return }
+    func handleBackspace(on queue: DispatchQueue? = nil, completion: (() -> Void)? = nil) {
+        guard let lastChunkSize = state.popLastInjection() else {
+            completion?()
+            return
+        }
 
-        // Inject N backspace events to delete the injected characters from the IDE
-        for i in 0..<lastChunkSize {
+        guard let targetQueue = queue else {
+            // Fallback synchronous loop
+            for i in 0..<lastChunkSize {
+                injectVirtualKey(keyCode: 51)  // Backspace
+                if lastChunkSize > 1 && i < lastChunkSize - 1 {
+                    Thread.sleep(forTimeInterval: 0.010)  // 10ms between backspaces
+                }
+            }
+            completion?()
+            return
+        }
+
+        func backspaceNext(index: Int) {
+            guard state.isGhostModeEnabled else {
+                completion?()
+                return
+            }
+
+            guard index < lastChunkSize else {
+                completion?()
+                return
+            }
+
             injectVirtualKey(keyCode: 51)  // Backspace
-            if lastChunkSize > 1 && i < lastChunkSize - 1 {
-                Thread.sleep(forTimeInterval: 0.010)  // 10ms between backspaces
+
+            let nextIndex = index + 1
+            if lastChunkSize > 1 && nextIndex < lastChunkSize {
+                targetQueue.asyncAfter(deadline: .now() + 0.010) { // 10ms between backspaces
+                    backspaceNext(index: nextIndex)
+                }
+            } else {
+                completion?()
             }
         }
+
+        backspaceNext(index: 0)
     }
 }

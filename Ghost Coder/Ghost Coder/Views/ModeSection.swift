@@ -59,6 +59,16 @@ struct ModeSection: View {
                     }
                     .transition(.opacity.combined(with: .move(edge: .top)))
                 }
+
+                Divider()
+                    .background(Color.white.opacity(0.12))
+
+                Toggle(isOn: $state.enableAutoCloseSkip) {
+                    Text("Skip Auto-Closed Brackets")
+                        .font(.body)
+                        .foregroundStyle(.white)
+                }
+                .toggleStyle(.switch)
             }
             .padding(14)
             .background(.ultraThinMaterial)

@@ -77,6 +77,9 @@ class GhostState: ObservableObject {
     @Published var isFolderScopeActive: Bool = true  // true when folder constraint passes
     @Published var isAccessibilityGranted: Bool = false
     @Published var isInputMonitoringGranted: Bool = false
+    /// When enabled, Ghost Coder uses the Auto-Close Skip Buffer to avoid
+    /// doubling brackets/quotes that the IDE already auto-inserted.
+    @Published var enableAutoCloseSkip: Bool = true
     @Published var frontmostAppName: String = "None"
     @Published var frontmostWindowMainTitle: String = "None"
     @Published var diagnosticLogs: [String] = []
