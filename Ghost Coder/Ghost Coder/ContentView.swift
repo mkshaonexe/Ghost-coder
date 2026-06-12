@@ -221,66 +221,93 @@ struct ContentView: View {
         )
     }
 
+    private var activationButtonGradientColors: [Color] {
+        let colors: [Color] = state.isGhostModeEnabled ? [
+            Color(red: 0.95, green: 0.35, blue: 0.20),
+            Color(red: 0.85, green: 0.12, blue: 0.38)
+        ] : [
+            Color(red: 0.05, green: 0.60, blue: 0.95),
+            Color(red: 0.0, green: 0.85, blue: 0.60)
+        ]
+        return colors
+    }
+
+    private var activationButtonShadowColor: Color {
+        guard state.isSourceLoaded else { return Color.clear }
+        let shadowColor: Color = state.isGhostModeEnabled
+            ? Color(red: 0.85, green: 0.12, blue: 0.38)
+            : Color(red: 0.0, green: 0.85, blue: 0.60)
+        return shadowColor.opacity(state.isGhostModeEnabled ? 0.35 : 0.25)
+    }
+
+    @ViewBuilder
+    private var buttonContent: some View {
+        let isEnabled: Bool = state.isGhostModeEnabled
+        let isLoaded: Bool = state.isSourceLoaded
+        
+        HStack(spacing: 12) {
+            ZStack {
+                Circle()
+                    .fill(isLoaded ? Color.white.opacity(0.18) : Color.white.opacity(0.05))
+                    .frame(width: 32, height: 32)
+                
+                Image(systemName: isEnabled ? "pause.fill" : "play.fill")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(isLoaded ? Color.white : Color.white.opacity(0.3))
+                    .offset(x: (!isEnabled) ? 1 : 0)
+            }
+            .padding(.leading, 6)
+
+            Text(isEnabled ? "Pause Ghost Mode" : "Activate Ghost Mode")
+                .font(.system(size: 15, weight: .bold, design: .rounded))
+                .foregroundStyle(isLoaded ? Color.white : Color.white.opacity(0.3))
+            
+            Spacer()
+            
+            HStack(spacing: 6) {
+                if isEnabled {
+                    PulsingDot(color: Color.green)
+                } else {
+                    Circle()
+                        .fill(isLoaded ? Color.white.opacity(0.5) : Color.white.opacity(0.2))
+                        .frame(width: 6, height: 6)
+                }
+                
+                Text(isEnabled ? "Armed" : "Idle")
+                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                    .foregroundStyle(isLoaded ? Color.white : Color.white.opacity(0.3))
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(isEnabled ? Color.black.opacity(0.25) : Color.white.opacity(0.08), in: Capsule())
+            .overlay(
+                Capsule()
+                    .stroke(isEnabled ? Color.white.opacity(0.15) : Color.white.opacity(0.08), lineWidth: 1)
+            )
+            .padding(.trailing, 6)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 10)
+    }
+
     @ViewBuilder
     private var activationButtonBlock: some View {
+        let isLoaded: Bool = state.isSourceLoaded
+        let gradientColors: [Color] = activationButtonGradientColors
+        let shadowColor: Color = activationButtonShadowColor
+        
         VStack(spacing: 12) {
             Button(action: toggleGhostMode) {
-                HStack(spacing: 12) {
-                    // Left Icon in a circular container
-                    ZStack {
-                        Circle()
-                            .fill(state.isSourceLoaded ? Color.white.opacity(0.18) : Color.white.opacity(0.05))
-                            .frame(width: 32, height: 32)
-                        
-                        Image(systemName: state.isGhostModeEnabled ? "pause.fill" : "play.fill")
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundStyle(state.isSourceLoaded ? Color.white : Color.white.opacity(0.3))
-                            .offset(x: (!state.isGhostModeEnabled) ? 1 : 0) // Nudge play triangle
-                    }
-                    .padding(.leading, 6)
-
-                    Text(state.isGhostModeEnabled ? "Pause Ghost Mode" : "Activate Ghost Mode")
-                        .font(.system(size: 15, weight: .bold, design: .rounded))
-                        .foregroundStyle(state.isSourceLoaded ? Color.white : Color.white.opacity(0.3))
-                    
-                    Spacer()
-                    
-                    // Right status pill
-                    HStack(spacing: 6) {
-                        if state.isGhostModeEnabled {
-                            PulsingDot(color: .green)
-                        } else {
-                            Circle()
-                                .fill(state.isSourceLoaded ? Color.white.opacity(0.5) : Color.white.opacity(0.2))
-                                .frame(width: 6, height: 6)
-                        }
-                        
-                        Text(state.isGhostModeEnabled ? "Armed" : "Idle")
-                            .font(.system(size: 11, weight: .bold, design: .rounded))
-                            .foregroundStyle(state.isSourceLoaded ? Color.white : Color.white.opacity(0.3))
-                    }
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .background(state.isGhostModeEnabled ? Color.black.opacity(0.25) : Color.white.opacity(0.08), in: Capsule())
-                    .overlay(
-                        Capsule()
-                            .stroke(state.isGhostModeEnabled ? Color.white.opacity(0.15) : Color.white.opacity(0.08), lineWidth: 1)
-                    )
-                    .padding(.trailing, 6)
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 10)
+                buttonContent
             }
             .buttonStyle(.plain)
             .background(
                 Group {
-                    if !state.isSourceLoaded {
+                    if !isLoaded {
                         Color.white.opacity(0.05)
                     } else {
                         LinearGradient(
-                            colors: state.isGhostModeEnabled
-                                ? [Color(red: 0.95, green: 0.35, blue: 0.20), Color(red: 0.85, green: 0.12, blue: 0.38)]
-                                : [Color(red: 0.05, green: 0.60, blue: 0.95), Color(red: 0.0, green: 0.85, blue: 0.60)],
+                            colors: gradientColors,
                             startPoint: .leading,
                             endPoint: .trailing
                         )
@@ -290,17 +317,15 @@ struct ContentView: View {
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .stroke(state.isSourceLoaded ? Color.white.opacity(0.2) : Color.white.opacity(0.08), lineWidth: 1)
+                    .stroke(isLoaded ? Color.white.opacity(0.2) : Color.white.opacity(0.08), lineWidth: 1)
             )
             .shadow(
-                color: state.isSourceLoaded
-                    ? (state.isGhostModeEnabled ? Color(red: 0.85, green: 0.12, blue: 0.38).opacity(0.35) : Color(red: 0.0, green: 0.85, blue: 0.60).opacity(0.25))
-                    : Color.clear,
+                color: shadowColor,
                 radius: 14,
                 x: 0,
                 y: 6
             )
-            .disabled(!state.isSourceLoaded)
+            .disabled(!isLoaded)
 
             HStack(spacing: 8) {
                 Image(systemName: "keyboard")
