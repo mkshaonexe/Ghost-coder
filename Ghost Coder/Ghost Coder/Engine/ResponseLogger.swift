@@ -84,7 +84,7 @@ class ResponseLogger {
             guard let self = self else { return }
             
             // Get App version
-            let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.3.0"
+            let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.3.1"
             
             let metadata = SessionMetadata(
                 sessionId: self.sessionId,
