@@ -109,24 +109,51 @@ class WindowMonitor {
             windowElement = focusedWindow
         } else {
             var windowsRef: AnyObject?
-            guard AXUIElementCopyAttributeValue(axApp, kAXWindowsAttribute as CFString, &windowsRef) == .success,
+            let windowsResult = AXUIElementCopyAttributeValue(axApp, kAXWindowsAttribute as CFString, &windowsRef)
+            guard windowsResult == .success,
                   let windows = windowsRef as? [AXUIElement],
                   let frontWindow = windows.first else {
-                return false
+                print("Ghost Coder: WindowMonitor - Failed to get windows list (error: \(windowsResult.rawValue))")
+                return true // Assume true on AX errors/transient states to avoid silent pause
             }
             windowElement = frontWindow
         }
 
-        var titleRef: AnyObject?
-        guard let windowElement,
-              AXUIElementCopyAttributeValue(windowElement, kAXTitleAttribute as CFString, &titleRef) == .success,
-              let windowTitle = titleRef as? String else {
-        let folderName = URL(fileURLWithPath: state.workspaceFolderPath).lastPathComponent
-        let match = windowTitle.contains(folderName)
-        if !match {
-            print("Ghost Coder: WindowMonitor - Workspace mismatch (Folder: '\(folderName)', Title: '\(windowTitle)')")
+        guard let windowElement else {
+            return true
         }
-        return match
+
+        var titleRef: AnyObject?
+        let titleResult = AXUIElementCopyAttributeValue(windowElement, kAXTitleAttribute as CFString, &titleRef)
+        guard titleResult == .success,
+              let windowTitle = titleRef as? String else {
+            print("Ghost Coder: WindowMonitor - Failed to get window title (error: \(titleResult.rawValue))")
+            return true // Assume true on AX errors/transient states to avoid silent pause
+        }
+
+        // Traverse up the workspaceFolderPath hierarchy to find matching directory names.
+        // This is robust if the configured path is a deep subfolder.
+        var currentURL = URL(fileURLWithPath: state.workspaceFolderPath)
+        let homeURL = URL(fileURLWithPath: NSHomeDirectory())
+        
+        let ignoredFolders: Set<String> = [
+            "lib", "src", "test", "app", "build", "dist", "node_modules", "ui", "features",
+            "components", "views", "models", "controllers", "helpers", "utils", "main", "res",
+            "assets", "packages", "sources", "ios", "android", "web", "macos", "linux", "windows",
+            "desktop", "mobile", "shared", "core"
+        ]
+
+        while currentURL.path != "/" && currentURL.path != homeURL.path {
+            let folderName = currentURL.lastPathComponent
+            if folderName.count > 2 && !ignoredFolders.contains(folderName.lowercased()) {
+                if windowTitle.localizedCaseInsensitiveContains(folderName) {
+                    return true
+                }
+            }
+            currentURL = currentURL.deletingLastPathComponent()
+        }
+        
+        return false
     }
 
     @objc private func handleAppActivation() {

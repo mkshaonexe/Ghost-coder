@@ -198,23 +198,13 @@ class KeyboardInterceptor {
 
         // Update state pointer and history thread-safely
         let count = chunk.count
-        if Thread.isMainThread {
-            self.state.injectionHistory.append(count)
-            self.state.currentIndex += count
-            self.state.updateCachedActiveState()
-        } else {
-            DispatchQueue.main.sync {
-                self.state.injectionHistory.append(count)
-                self.state.currentIndex += count
-                self.state.updateCachedActiveState()
-            }
-        }
+        state.advanceIndex(by: count)
 
         // Inject asynchronously
-        isInjectingSafe = true
+        isInjecting = true
         injectionQueue.async { [weak self] in
             self?.injector.injectString(chunk)
-            self?.isInjectingSafe = false
+            DispatchQueue.main.async { self?.isInjecting = false }
         }
 
         return nil  // Block the original keypress

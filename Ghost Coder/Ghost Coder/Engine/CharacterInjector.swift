@@ -18,7 +18,7 @@ class CharacterInjector {
     // MARK: - Inject a string of characters (runs on injectionQueue)
 
     func injectString(_ text: String) {
-        let delaySeconds = Double(state.injectionDelayMs) / 1000.0
+        let delaySeconds = Double(state.safeDelayMs) / 1000.0
         let isMultiChar = text.count > 1
 
         for char in text {
@@ -52,30 +52,22 @@ class CharacterInjector {
         keyDown?.keyboardSetUnicodeString(stringLength: utf16Units.count, unicodeString: &utf16Units)
         keyUp?.keyboardSetUnicodeString(stringLength: utf16Units.count, unicodeString: &utf16Units)
 
-        keyDown?.post(tap: .cghidEventTap)
-        keyUp?.post(tap: .cghidEventTap)
+        keyDown?.post(tap: .cgSessionEventTap)
+        keyUp?.post(tap: .cgSessionEventTap)
     }
 
     // MARK: - Virtual Key Injection (for Return, Tab, Backspace)
 
     func injectVirtualKey(keyCode: CGKeyCode) {
         let source = CGEventSource(stateID: .combinedSessionState)
-        CGEvent(keyboardEventSource: source, virtualKey: keyCode, keyDown: true)?.post(tap: .cghidEventTap)
-        CGEvent(keyboardEventSource: source, virtualKey: keyCode, keyDown: false)?.post(tap: .cghidEventTap)
+        CGEvent(keyboardEventSource: source, virtualKey: keyCode, keyDown: true)?.post(tap: .cgSessionEventTap)
+        CGEvent(keyboardEventSource: source, virtualKey: keyCode, keyDown: false)?.post(tap: .cgSessionEventTap)
     }
 
     // MARK: - Backspace Undo
 
     func handleBackspace() {
-        guard let lastChunkSize = DispatchQueue.main.sync(execute: { () -> Int? in
-            state.injectionHistory.popLast()
-        }) else { return }
-
-        // Update the index on the main thread
-        DispatchQueue.main.async {
-            self.state.currentIndex -= lastChunkSize
-            self.state.updateCachedActiveState()
-        }
+        guard let lastChunkSize = state.popLastInjection() else { return }
 
         // Inject N backspace events to delete the injected characters from the IDE
         for i in 0..<lastChunkSize {
