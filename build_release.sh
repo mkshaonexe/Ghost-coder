@@ -73,6 +73,6 @@ echo "=== Publishing to GitHub Releases ==="
 gh release delete "${TAG}" --yes || true
 gh release create "${TAG}" Ghost_Coder_macOS.zip Ghost_Coder_macOS.dmg \
   --title "${TAG} — Production Release" \
-  --notes "This release bumps version to ${TAG} and fixes the installation download script by pointing to release assets."
+  --notes "Ghost Coder v1.3.0: Response & Work Log Engine with AI-friendly JSON format, special character tracking, modifier key tracking, async log buffer, session management."
 
 echo "=== Release published successfully! ==="
