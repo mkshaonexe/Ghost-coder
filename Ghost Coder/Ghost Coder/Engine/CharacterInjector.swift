@@ -153,7 +153,7 @@ class CharacterInjector {
         keyDown.post(tap: .cgAnnotatedSessionEventTap)
         keyUp.post(tap: .cgAnnotatedSessionEventTap)
 
-        DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + 0.3) {
+        DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + 1.2) {
             if let prev = previousString {
                 pasteboard.clearContents()
                 pasteboard.setString(prev, forType: .string)
