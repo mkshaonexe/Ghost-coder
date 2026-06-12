@@ -26,6 +26,12 @@ struct Ghost_CoderApp: App {
         let h = GlobalHotkey(state: s, interceptor: i)
         let m = MainWindowController(state: s)
         let c = CLIServer(state: s)
+
+        // Wire up the HotFix engine — must be created AFTER both `s` and `i`
+        // exist. `i` retains it strongly; `s` holds a weak back-reference.
+        let hf = HotFixEngine(state: s, interceptor: i)
+        s.hotFixEngine = hf
+        i.hotFixEngine = hf
         
         _state = StateObject(wrappedValue: s)
         self.interceptor = i

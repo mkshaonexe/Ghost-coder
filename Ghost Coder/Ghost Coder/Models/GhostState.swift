@@ -53,6 +53,10 @@ class GhostState: ObservableObject {
     }()
     var responseLogger: ResponseLogger?
 
+    // MARK: - HotFix Engine
+    /// Weak to avoid a retain cycle (HotFixEngine holds GhostState strongly via state).
+    weak var hotFixEngine: HotFixEngine?
+
     // MARK: - Configuration (user-set, persisted)
     @Published var sourceCode: String = "" {
         didSet {
@@ -138,6 +142,49 @@ class GhostState: ObservableObject {
     private var safeInjectionDelayMs: Int = 12
     private var safeInjectionHistory: [Int] = []
     private var _safeEnableAutoCloseSkip: Bool = true
+
+    // MARK: - HotFix running flag (written on injectionQueue, read on CGEventTap thread)
+    private let hotfixStateLock = NSLock()
+    private var _isHotFixRunning: Bool = false
+
+    /// `true` while HotFixEngine is performing a correction.
+    /// KeyboardInterceptor reads this from the CGEventTap callback thread to
+    /// swallow keypresses during the fix.
+    var isHotFixRunning: Bool {
+        get {
+            hotfixStateLock.lock()
+            defer { hotfixStateLock.unlock() }
+            return _isHotFixRunning
+        }
+        set {
+            hotfixStateLock.lock()
+            _isHotFixRunning = newValue
+            hotfixStateLock.unlock()
+        }
+    }
+
+    // MARK: - Thread-safe accessors for HotFixEngine
+
+    /// Current injection index, safe to read from any thread.
+    var safeCurrentIndexValue: Int {
+        stateLock.lock()
+        defer { stateLock.unlock() }
+        return safeCurrentIndex
+    }
+
+    /// Total source character count, safe to read from any thread.
+    var safeSourceLength: Int {
+        stateLock.lock()
+        defer { stateLock.unlock() }
+        return safeSourceCode.count
+    }
+
+    /// Full copy of the source code string, safe to read from any thread.
+    var safeSourceCodeCopy: String {
+        stateLock.lock()
+        defer { stateLock.unlock() }
+        return safeSourceCode
+    }
 
     // MARK: - Cached active flag (read by CGEventTap callback — Bool is single-word, atomic on Apple Silicon)
     // Written exclusively on the main thread by WindowMonitor.
@@ -298,6 +345,9 @@ class GhostState: ObservableObject {
 
         currentIndex = 0
         injectionHistory.removeAll()
+
+        // Reset HotFix milestone tracking whenever the pointer resets
+        hotFixEngine?.reset()
     }
 
     // MARK: - Thread-safe State Modifiers (called from background/tap threads)

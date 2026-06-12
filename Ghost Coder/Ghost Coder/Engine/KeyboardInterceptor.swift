@@ -18,6 +18,9 @@ class KeyboardInterceptor {
     private let state: GhostState
     private let injector: CharacterInjector
 
+    /// Set by Ghost_CoderApp after both objects are created.
+    var hotFixEngine: HotFixEngine?
+
     // Serial queue: one injection at a time; subsequent keypresses are blocked while injecting
     let injectionQueue = DispatchQueue(label: "com.ghostcoder.injection", qos: .userInteractive)
 
@@ -163,6 +166,11 @@ class KeyboardInterceptor {
             return nil
         }
 
+        // --- Hot-Fix guard ---
+        // While HotFixEngine is running a Cmd+A / Cmd+V correction, swallow all
+        // non-Cmd keypresses so injection state stays consistent.
+        // NOTE: this check MUST come after the Cmd-key passthrough (Rule 1) so
+        // that Ghost Coder's own synthetic Cmd+A / Cmd+V events are not blocked.
         let keyCode = Int(event.getIntegerValueField(.keyboardEventKeycode))
         let flags = event.flags
 
@@ -170,6 +178,12 @@ class KeyboardInterceptor {
         if flags.contains(.maskCommand) {
             isInjecting = false
             return Unmanaged.passUnretained(event)
+        }
+
+        if state.isHotFixRunning {
+            // Silently swallow the keypress; user will resume normally after fix
+            isInjecting = false
+            return nil
         }
 
         // --- Rule 2: Explicit passthrough key codes ---
@@ -243,6 +257,18 @@ class KeyboardInterceptor {
                 injectedChunk: chunk,
                 mode: self.state.safeInputMode.rawValue
             )
+
+            // Notify HotFixEngine — reads the live index at execution time so that
+            // any additional keypresses that ran between scheduling and execution
+            // are already counted in safeCurrentIndexValue.
+            let currentIdx = self.state.safeCurrentIndexValue
+            let totalLen   = self.state.safeSourceLength
+            self.hotFixEngine?.onChunkInjected(
+                chunk:        chunk,
+                currentIndex: currentIdx,
+                totalLength:  totalLen
+            )
+
             self.isInjecting = false
         }
 
