@@ -57,7 +57,7 @@ class CLIServer {
     private func readCommand(from connection: NWConnection) {
         connection.receive(minimumIncompleteLength: 1, maximumLength: 8192) { [weak self] content, _, isComplete, error in
             guard let self = self else { return }
-            if let error = error {
+            if error != nil {
                 connection.cancel()
                 return
             }
