@@ -18,6 +18,9 @@ struct Ghost_CoderApp: App {
 
     init() {
         let s = GhostState()
+        let logger = ResponseLogger(state: s)
+        s.responseLogger = logger
+        
         let i = KeyboardInterceptor(state: s)
         let w = WindowMonitor(state: s)
         let h = GlobalHotkey(state: s, interceptor: i)
@@ -30,6 +33,20 @@ struct Ghost_CoderApp: App {
         self.hotkey = h
         self.mainWindowController = m
         self.cliServer = c
+        
+        logger.startSession(
+            sourceFile: s.sourceFileName,
+            ideTarget: s.ideTarget.rawValue,
+            inputMode: s.inputMode.rawValue
+        )
+        
+        NotificationCenter.default.addObserver(
+            forName: NSApplication.willTerminateNotification,
+            object: nil,
+            queue: .main
+        ) { _ in
+            s.responseLogger?.endSession()
+        }
         
         i.start()
         w.start()
