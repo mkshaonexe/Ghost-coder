@@ -45,6 +45,14 @@ enum GhostOperationalState {
 
 class GhostState: ObservableObject {
 
+    // MARK: - Session & Response Logging
+    let sessionId: String = {
+        let uuid = UUID().uuidString.prefix(8).lowercased()
+        let timestamp = Int(Date().timeIntervalSince1970)
+        return "\(uuid)-\(timestamp)"
+    }()
+    var responseLogger: ResponseLogger?
+
     // MARK: - Configuration (user-set, persisted)
     @Published var sourceCode: String = "" {
         didSet {
