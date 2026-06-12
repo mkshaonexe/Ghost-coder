@@ -60,14 +60,20 @@ struct ModeSection: View {
                     .transition(.opacity.combined(with: .move(edge: .top)))
                 }
             }
-            .padding(12)
-            .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(Color.white.opacity(0.08))
-            )
+            .padding(14)
+            .background(.ultraThinMaterial)
+            .background(Color.white.opacity(0.02))
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
             .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(Color.white.opacity(0.12), lineWidth: 1)
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .stroke(
+                        LinearGradient(
+                            colors: [.white.opacity(0.12), .white.opacity(0.04)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1
+                    )
             )
             .animation(.easeInOut(duration: 0.25), value: state.inputMode)
         }

@@ -30,36 +30,37 @@ struct SourceFileSection: View {
 
     private var dropZoneView: some View {
         Button(action: selectFile) {
-            VStack(spacing: 12) {
+            VStack(spacing: 14) {
                 Image(systemName: "arrow.down.doc.fill")
-                    .font(.system(size: 32))
-                    .foregroundStyle(isTargeted ? Color.accentColor : Color.secondary)
-                    .scaleEffect(isTargeted ? 1.1 : 1.0)
-                    .animation(.spring(), value: isTargeted)
+                    .font(.system(size: 34))
+                    .foregroundStyle(isTargeted ? Color.cyan : Color.white.opacity(0.44))
+                    .shadow(color: isTargeted ? Color.cyan.opacity(0.5) : Color.clear, radius: 8)
+                    .scaleEffect(isTargeted ? 1.15 : 1.0)
+                    .animation(.spring(response: 0.35, dampingFraction: 0.7), value: isTargeted)
 
-                VStack(spacing: 4) {
+                VStack(spacing: 6) {
                     Text("Drag & drop source file here")
-                        .font(.headline)
+                        .font(.system(size: 15, weight: .bold, design: .rounded))
                         .foregroundStyle(.white)
                     
                     Text("or click to browse files")
-                        .font(.subheadline)
-                        .foregroundStyle(Color.white.opacity(0.68))
+                        .font(.system(size: 12, design: .rounded))
+                        .foregroundStyle(Color.white.opacity(0.5))
                 }
             }
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 32)
-            .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(Color.white.opacity(0.08))
-            )
+            .padding(.vertical, 34)
+            .background(.ultraThinMaterial)
+            .background(isTargeted ? Color.cyan.opacity(0.05) : Color.white.opacity(0.02))
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
             .overlay(
-                RoundedRectangle(cornerRadius: 12)
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
                     .strokeBorder(
-                        isTargeted ? Color.cyan : Color.white.opacity(0.22),
-                        style: StrokeStyle(lineWidth: 2, dash: [6, 4])
+                        isTargeted ? Color.cyan : Color.white.opacity(0.15),
+                        style: StrokeStyle(lineWidth: 1.5, dash: [6, 4])
                     )
             )
+            .shadow(color: isTargeted ? Color.cyan.opacity(0.15) : Color.clear, radius: 12)
         }
         .buttonStyle(.plain)
         .onDrop(of: [.fileURL], isTargeted: $isTargeted) { providers in
@@ -137,14 +138,20 @@ struct SourceFileSection: View {
                 .buttonStyle(.bordered)
             }
         }
-        .padding(12)
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color.white.opacity(0.08))
-        )
+        .padding(14)
+        .background(.ultraThinMaterial)
+        .background(Color.white.opacity(0.02))
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(Color.white.opacity(0.12), lineWidth: 1)
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(
+                    LinearGradient(
+                        colors: [.white.opacity(0.12), .white.opacity(0.04)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 1
+                )
         )
     }
 

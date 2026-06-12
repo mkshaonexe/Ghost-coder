@@ -29,6 +29,7 @@ struct PermissionsSection: View {
                 )
 
                 Divider()
+                .background(Color.white.opacity(0.08))
 
                 // Input Monitoring Permission Row
                 permissionRow(
@@ -39,14 +40,20 @@ struct PermissionsSection: View {
                     settingsURL: "x-apple.systempreferences:com.apple.preference.security?Privacy_ListenEvent"
                 )
             }
-            .padding(12)
-            .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(Color.white.opacity(0.08))
-            )
+            .padding(14)
+            .background(.ultraThinMaterial)
+            .background(Color.white.opacity(0.02))
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
             .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(Color.white.opacity(0.12), lineWidth: 1)
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .stroke(
+                        LinearGradient(
+                            colors: [.white.opacity(0.12), .white.opacity(0.04)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1
+                    )
             )
         }
     }

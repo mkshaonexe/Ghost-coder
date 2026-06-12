@@ -9,6 +9,7 @@ import SwiftUI
 
 struct ProgressSection: View {
     @ObservedObject var state: GhostState
+    @State private var isAnimating = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -42,11 +43,16 @@ struct ProgressSection: View {
                                 )
                             )
                             .frame(width: geo.size.width * CGFloat(state.progress), height: 8)
-                            .shadow(color: Color.cyan.opacity(0.32), radius: 6, x: 0, y: 2)
+                            .shadow(color: Color.cyan.opacity(state.isGhostModeEnabled && isAnimating ? 0.65 : 0.32), radius: state.isGhostModeEnabled && isAnimating ? 8 : 4, x: 0, y: 1)
                             .animation(.spring(response: 0.4, dampingFraction: 0.75), value: state.progress)
                     }
                 }
                 .frame(height: 8)
+                .onAppear {
+                    withAnimation(Animation.easeInOut(duration: 1.0).repeatForever(autoreverses: true)) {
+                        isAnimating = true
+                    }
+                }
                 
                 HStack {
                     Text("\(state.currentIndex) / \(state.completionCount) characters")
@@ -67,14 +73,20 @@ struct ProgressSection: View {
                     }
                 }
             }
-            .padding(12)
-            .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(Color.white.opacity(0.08))
-            )
+            .padding(14)
+            .background(.ultraThinMaterial)
+            .background(Color.white.opacity(0.02))
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
             .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(Color.white.opacity(0.12), lineWidth: 1)
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .stroke(
+                        LinearGradient(
+                            colors: [.white.opacity(0.12), .white.opacity(0.04)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1
+                    )
             )
         }
     }

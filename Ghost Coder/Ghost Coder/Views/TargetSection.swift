@@ -81,57 +81,103 @@ struct TargetSection: View {
                 Divider()
 
                 // Live Monitor Dashboard
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("LIVE MONITOR (DUAL-MONITOR DASHBOARD)")
-                        .font(.system(size: 9, weight: .bold, design: .rounded))
-                        .foregroundStyle(Color.white.opacity(0.5))
-
-                    HStack(spacing: 8) {
-                        Image(systemName: "app.dashed")
-                            .foregroundStyle(state.isIDEFocused ? Color.green : Color.orange)
-                        Text("Active App:")
-                            .font(.caption)
-                            .foregroundStyle(Color.white.opacity(0.7))
-                        Text(state.frontmostAppName)
-                            .font(.caption)
-                            .fontWeight(.bold)
-                            .foregroundStyle(.white)
-                        Spacer()
-                        Text(state.isIDEFocused ? "🟢 TARGET MATCHED" : "🔴 TARGET FOCUS NEEDED")
-                            .font(.system(size: 9, weight: .black, design: .rounded))
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(state.isIDEFocused ? Color.green.opacity(0.2) : Color.orange.opacity(0.2), in: Capsule())
-                            .foregroundStyle(state.isIDEFocused ? Color.green : Color.orange)
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack(spacing: 6) {
+                        Circle()
+                            .fill(state.isIDEFocused ? Color.green : Color.orange)
+                            .frame(width: 6, height: 6)
+                        Text("LIVE MONITOR (DUAL-MONITOR DASHBOARD)")
+                            .font(.system(size: 9, weight: .bold, design: .rounded))
+                            .foregroundStyle(Color.white.opacity(0.5))
                     }
 
-                    HStack(spacing: 8) {
-                        Image(systemName: "macwindow.on.rectangle")
-                            .foregroundStyle((state.isFolderScopeActive && state.isIDEFocused) ? Color.green : Color.orange)
-                        Text("Active Window:")
-                            .font(.caption)
-                            .foregroundStyle(Color.white.opacity(0.7))
-                        Text(state.frontmostWindowMainTitle)
-                            .font(.caption)
-                            .fontWeight(.bold)
-                            .foregroundStyle(.white)
-                            .lineLimit(1)
-                        Spacer()
-                    }
+                    liveMonitorConsole
                 }
-                .padding(8)
-                .background(Color.white.opacity(0.04), in: RoundedRectangle(cornerRadius: 8))
+                .padding(10)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color.white.opacity(0.03))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(Color.white.opacity(0.06), lineWidth: 1)
+                )
             }
-            .padding(12)
+            .padding(14)
             .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(Color.white.opacity(0.08))
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(Color.white.opacity(0.02))
+            )
+            .background(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(.ultraThinMaterial)
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(Color.white.opacity(0.12), lineWidth: 1)
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .stroke(
+                        LinearGradient(
+                            colors: [.white.opacity(0.12), .white.opacity(0.04)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1
+                    )
             )
         }
+    }
+
+    private var liveMonitorConsole: some View {
+        VStack(spacing: 8) {
+            HStack(spacing: 8) {
+                Image(systemName: "app.dashed")
+                    .font(.caption)
+                    .foregroundStyle(state.isIDEFocused ? Color.green : Color.orange)
+                Text("Active App:")
+                    .font(.system(size: 11, design: .rounded))
+                    .foregroundStyle(Color.white.opacity(0.6))
+                Text(state.frontmostAppName.isEmpty ? "None" : state.frontmostAppName)
+                    .font(.system(size: 11, weight: .bold, design: .monospaced))
+                    .foregroundStyle(.white)
+                Spacer()
+                statusBadge
+            }
+
+            HStack(spacing: 8) {
+                Image(systemName: "macwindow.on.rectangle")
+                    .font(.caption)
+                    .foregroundStyle((state.isFolderScopeActive && state.isIDEFocused) ? Color.green : Color.orange)
+                Text("Active Window:")
+                    .font(.system(size: 11, design: .rounded))
+                    .foregroundStyle(Color.white.opacity(0.6))
+                Text(state.frontmostWindowMainTitle.isEmpty ? "No active window" : state.frontmostWindowMainTitle)
+                    .font(.system(size: 11, weight: .bold, design: .monospaced))
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+                Spacer()
+            }
+        }
+        .padding(10)
+        .background(
+            RoundedRectangle(cornerRadius: 8)
+                .fill(Color.black.opacity(0.2))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(Color.white.opacity(0.06), lineWidth: 1)
+        )
+    }
+
+    private var statusBadge: some View {
+        Text(state.isIDEFocused ? "TARGET MATCHED" : "FOCUS NEEDED")
+            .font(.system(size: 8, weight: .black, design: .rounded))
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2.5)
+            .background(state.isIDEFocused ? Color.green.opacity(0.12) : Color.orange.opacity(0.12), in: Capsule())
+            .overlay(
+                Capsule()
+                    .stroke(state.isIDEFocused ? Color.green.opacity(0.3) : Color.orange.opacity(0.3), lineWidth: 1)
+            )
+            .foregroundStyle(state.isIDEFocused ? Color.green : Color.orange)
     }
 
     private var scopeStatusText: String {
