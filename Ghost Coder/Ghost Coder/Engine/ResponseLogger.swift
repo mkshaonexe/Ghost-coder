@@ -8,20 +8,20 @@
 import Foundation
 import CoreGraphics
 
-struct PhysicalKeyInfo: Encodable {
+struct PhysicalKeyInfo: Encodable, Sendable {
     let keycode: Int
     let char: String
     let hex: String
     let modifiers: [String]
 }
 
-struct VirtualOutputInfo: Encodable {
+struct VirtualOutputInfo: Encodable, Sendable {
     let char: String
     let hex: String
     let display: String
 }
 
-struct KeystrokeEvent: Encodable {
+struct KeystrokeEvent: Encodable, Sendable {
     let type = "keystroke_event"
     let seq: Int
     let timestamp: String
@@ -31,7 +31,7 @@ struct KeystrokeEvent: Encodable {
     let mode: String
 }
 
-struct SessionMetadata: Encodable {
+struct SessionMetadata: Encodable, Sendable {
     let type = "session_metadata"
     let sessionId: String
     let startedAt: String
