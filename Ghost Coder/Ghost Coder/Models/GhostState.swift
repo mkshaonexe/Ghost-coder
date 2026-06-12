@@ -88,6 +88,13 @@ class GhostState: ObservableObject {
     @Published var sourceFileName: String = ""
     @Published var ideTarget: IDETarget = .vsCode
     @Published var workspaceFolderPath: String = ""
+    @Published var targetFilePath: String = "" {
+        didSet {
+            stateLock.lock()
+            safeTargetFilePath = targetFilePath
+            stateLock.unlock()
+        }
+    }
     @Published var inputMode: InputMode = .character {
         didSet {
             stateLock.lock()
@@ -170,6 +177,7 @@ class GhostState: ObservableObject {
     private let stateLock = NSLock()
     private var safeCurrentIndex: Int = 0
     private var safeSourceCode: String = ""
+    private var safeTargetFilePath: String = ""
     private var _safeInputMode: InputMode = .character
     private var safeInjectionDelayMs: Int = 12
     private var safeInjectionHistory: [Int] = []
@@ -216,6 +224,13 @@ class GhostState: ObservableObject {
         stateLock.lock()
         defer { stateLock.unlock() }
         return safeSourceCode
+    }
+
+    /// Target file path, safe to read from any thread.
+    var safeTargetFilePathValue: String {
+        stateLock.lock()
+        defer { stateLock.unlock() }
+        return safeTargetFilePath
     }
 
     // MARK: - Cached active flag (read by CGEventTap callback — Bool is single-word, atomic on Apple Silicon)
