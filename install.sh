@@ -20,7 +20,7 @@ echo -e "\033[1;34m[1/5]\033[0m Fetching latest release information from GitHub.
 LATEST_RELEASE=$(curl -s https://api.github.com/repos/mkshaonexe/Ghost-coder/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/' || true)
 
 if [ -z "$LATEST_RELEASE" ]; then
-  LATEST_RELEASE="v1.2.1"
+  LATEST_RELEASE="v1.2.2"
   echo "  * Falling back to release version: $LATEST_RELEASE"
 else
   echo "  * Found latest release: $LATEST_RELEASE"
