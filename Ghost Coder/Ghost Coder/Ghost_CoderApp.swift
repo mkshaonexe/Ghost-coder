@@ -34,11 +34,7 @@ struct Ghost_CoderApp: App {
         self.mainWindowController = m
         self.cliServer = c
         
-        logger.startSession(
-            sourceFile: s.sourceFileName,
-            ideTarget: s.ideTarget.rawValue,
-            inputMode: s.inputMode.rawValue
-        )
+        
         
         NotificationCenter.default.addObserver(
             forName: NSApplication.willTerminateNotification,
