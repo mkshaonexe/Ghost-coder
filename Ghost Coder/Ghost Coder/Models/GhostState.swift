@@ -262,6 +262,13 @@ class GhostState: ObservableObject {
 
         sourceCode = content
         sourceFileName = url.lastPathComponent
+        
+        responseLogger?.startSession(
+            sourceFile: sourceFileName,
+            ideTarget: ideTarget.rawValue,
+            inputMode: inputMode.rawValue
+        )
+        
         isGhostModeEnabled = false // Auto-pause when new file is loaded
         reset()
         updateCachedActiveState()
@@ -438,13 +445,38 @@ class GhostState: ObservableObject {
             return result
 
         case .line:
-            // Read up to and including the next newline
             var result = ""
-            for char in remaining {
-                result.append(char)
-                if char == "\n" { break }
+            let chars = Array(remaining)
+            guard !chars.isEmpty else { return "" }
+            
+            let isStartOfLine = (index == 0) || {
+                let prevIndex = sourceCode.index(sourceCode.startIndex, offsetBy: index - 1)
+                return sourceCode[prevIndex] == "\n"
+            }()
+            
+            if isStartOfLine {
+                // Read up to and including the next newline
+                for char in chars {
+                    result.append(char)
+                    if char == "\n" { break }
+                }
+            } else {
+                // We are mid-line.
+                if chars[0] == "\n" {
+                    // If the first character is a newline, we read it AND the next line up to and including its newline.
+                    result.append(chars[0])
+                    for char in chars.dropFirst() {
+                        result.append(char)
+                        if char == "\n" { break }
+                    }
+                } else {
+                    // Read up to (but NOT including) the next newline
+                    for char in chars {
+                        if char == "\n" { break }
+                        result.append(char)
+                    }
+                }
             }
-            // If last line has no trailing newline, return remaining
             return result
         }
     }
