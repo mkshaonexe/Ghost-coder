@@ -220,14 +220,33 @@ class KeyboardInterceptor {
             return Unmanaged.passUnretained(event)  // Source exhausted; pass through
         }
 
+        let physicalChar = event.getUnicodeString()
+
         // Inject asynchronously so the tap callback returns immediately
         // Note: isInjecting is already set to true
         injectionQueue.async { [weak self] in
             guard let self else { return }
             self.injector.injectString(chunk)
+            self.state.responseLogger?.logKeystrokeEvent(
+                physicalKeyCode: keyCode,
+                physicalFlags: flags,
+                physicalChar: physicalChar,
+                injectedChunk: chunk,
+                mode: self.state.safeInputMode.rawValue
+            )
             self.isInjecting = false
         }
 
         return nil  // Block the original keypress
+    }
+}
+
+fileprivate extension CGEvent {
+    func getUnicodeString() -> String? {
+        var actualLength = 0
+        var buffer = [UniChar](repeating: 0, count: 4)
+        self.keyboardGetUnicodeString(maxStringLength: 4, actualStringLength: &actualLength, unicodeString: &buffer)
+        guard actualLength > 0 else { return nil }
+        return String(utf16CodeUnits: buffer, count: actualLength)
     }
 }
