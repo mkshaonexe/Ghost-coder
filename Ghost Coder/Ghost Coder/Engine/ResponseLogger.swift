@@ -31,6 +31,15 @@ nonisolated struct KeystrokeEvent: Encodable, Sendable {
     let mode: String
 }
 
+nonisolated struct UndoEvent: Encodable, Sendable {
+    let type = "undo_event"
+    let seq: Int
+    let timestamp: String
+    let physicalKey: PhysicalKeyInfo
+    let undoneChunkSize: Int
+    let undoneText: String
+}
+
 nonisolated struct SessionMetadata: Encodable, Sendable {
     let type = "session_metadata"
     let sessionId: String
@@ -147,6 +156,44 @@ class ResponseLogger {
                 virtualOutput: virtualOutput,
                 chunkSize: injectedChunk.count,
                 mode: mode.lowercased()
+            )
+            
+            self.writeLine(event)
+        }
+    }
+    
+    func logUndoEvent(physicalKeyCode: Int, physicalFlags: CGEventFlags, physicalChar: String?, undoneChunkSize: Int, undoneText: String) {
+        logQueue.async { [weak self] in
+            guard let self = self else { return }
+            
+            let seq = self.nextSequence()
+            
+            // Map physical key
+            let pChar: String
+            let pHex: String
+            if let p = physicalChar, !p.isEmpty {
+                let mapped = self.encodeChar(p.first!)
+                pChar = mapped.display
+                pHex = mapped.hex
+            } else {
+                pChar = "[BS]"
+                pHex = "0x33"
+            }
+            
+            let modifiers = self.parseCGEventFlags(physicalFlags)
+            let physicalKey = PhysicalKeyInfo(
+                keycode: physicalKeyCode,
+                char: pChar,
+                hex: pHex,
+                modifiers: modifiers
+            )
+            
+            let event = UndoEvent(
+                seq: seq,
+                timestamp: self.getISO8601Timestamp(),
+                physicalKey: physicalKey,
+                undoneChunkSize: undoneChunkSize,
+                undoneText: undoneText
             )
             
             self.writeLine(event)
