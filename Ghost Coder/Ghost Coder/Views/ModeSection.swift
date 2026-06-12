@@ -10,6 +10,14 @@ import SwiftUI
 struct ModeSection: View {
     @ObservedObject var state: GhostState
 
+    /// Converts the integer delay into a Double binding for Slider — avoids Binding(get:set:) in body.
+    private var delayBinding: Binding<Double> {
+        Binding(
+            get: { Double(state.injectionDelayMs) },
+            set: { state.injectionDelayMs = Int($0) }
+        )
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("INPUT MODE & SPEED")
@@ -43,14 +51,11 @@ struct ModeSection: View {
                         }
                         
                         Slider(
-                            value: Binding(
-                                get: { Double(state.injectionDelayMs) },
-                                set: { state.injectionDelayMs = Int($0) }
-                            ),
+                            value: delayBinding,
                             in: 5...80,
                             step: 1
                         )
-                        .accentColor(.accentColor)
+                        .tint(.accentColor)
                     }
                     .transition(.opacity.combined(with: .move(edge: .top)))
                 }

@@ -7,6 +7,7 @@
 
 import Cocoa
 import CoreGraphics
+import os
 
 class KeyboardInterceptor {
     private var eventTap: CFMachPort?
@@ -20,20 +21,12 @@ class KeyboardInterceptor {
     // Serial queue: one injection at a time; subsequent keypresses are blocked while injecting
     let injectionQueue = DispatchQueue(label: "com.ghostcoder.injection", qos: .userInteractive)
 
-    // NSLock-protected isInjecting flag — safe to read/write from any thread
-    private let interceptorLock = NSLock()
-    private var _isInjecting: Bool = false
+    // OSAllocatedUnfairLock: faster than NSLock, safe for flag read/write from any thread
+    private let injectionLock = OSAllocatedUnfairLock<Bool>(initialState: false)
+
     var isInjecting: Bool {
-        get {
-            interceptorLock.lock()
-            defer { interceptorLock.unlock() }
-            return _isInjecting
-        }
-        set {
-            interceptorLock.lock()
-            _isInjecting = newValue
-            interceptorLock.unlock()
-        }
+        get { injectionLock.withLock { $0 } }
+        set { injectionLock.withLock { $0 = newValue } }
     }
 
     init(state: GhostState) {
@@ -191,8 +184,9 @@ class KeyboardInterceptor {
             }
             isInjecting = true
             injectionQueue.async { [weak self] in
-                self?.injector.handleBackspace()
-                DispatchQueue.main.async { self?.isInjecting = false }
+                guard let self else { return }
+                self.injector.handleBackspace()
+                self.isInjecting = false
             }
             return nil  // Block original backspace
         }
@@ -206,21 +200,20 @@ class KeyboardInterceptor {
             // Fall through to injection logic below — treat as a normal injection key
         }
 
-        // --- Rule 5: Normal typing key → block and inject source characters ---
-        let chunk = state.getNextChunk()
+        // --- Rule 5: Normal typing key → atomically claim the next chunk and inject ---
+        // getAndAdvanceNextChunk is atomic: both the read and advance happen under one lock.
+        // This prevents a second keypress from stealing the same chunk before we advance.
+        let chunk = state.getAndAdvanceNextChunk()
         guard !chunk.isEmpty else {
             return Unmanaged.passUnretained(event)  // Source exhausted; pass through
         }
 
-        // Update state pointer and history thread-safely
-        let count = chunk.count
-        state.advanceIndex(by: count)
-
         // Inject asynchronously so the tap callback returns immediately
         isInjecting = true
         injectionQueue.async { [weak self] in
-            self?.injector.injectString(chunk)
-            DispatchQueue.main.async { self?.isInjecting = false }
+            guard let self else { return }
+            self.injector.injectString(chunk)
+            self.isInjecting = false
         }
 
         return nil  // Block the original keypress

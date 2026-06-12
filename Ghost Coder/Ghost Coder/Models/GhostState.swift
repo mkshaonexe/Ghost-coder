@@ -100,7 +100,7 @@ class GhostState: ObservableObject {
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
             self.diagnosticLogs.insert(formattedMessage, at: 0)
-            if self.diagnosticLogs.count > 50 {
+            if self.diagnosticLogs.count > 200 {
                 self.diagnosticLogs.removeLast()
             }
         }
@@ -214,6 +214,7 @@ class GhostState: ObservableObject {
             && currentIndex < sourceCode.count
             && isIDEFocused
             && isFolderScopeActive
+            && isAccessibilityGranted  // Cannot intercept without accessibility
     }
 
     // MARK: - Source File Loading
@@ -280,7 +281,6 @@ class GhostState: ObservableObject {
         safeCurrentIndex += count
         safeInjectionHistory.append(count)
         let newIndex = safeCurrentIndex
-        let historySnapshot = safeInjectionHistory
         stateLock.unlock()
 
         log("Advanced pointer by \(count) to \(newIndex) / \(sourceCode.count)")
@@ -288,7 +288,7 @@ class GhostState: ObservableObject {
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
             self.currentIndex = newIndex
-            self.injectionHistory = historySnapshot
+            self.injectionHistory.append(count)
             self.updateCachedActiveState()
         }
     }
@@ -301,7 +301,6 @@ class GhostState: ObservableObject {
         }
         safeCurrentIndex = max(0, safeCurrentIndex - count)
         let newIndex = safeCurrentIndex
-        let historySnapshot = safeInjectionHistory
         stateLock.unlock()
 
         log("Undid last injection: removed \(count) chars, pointer now at \(newIndex)")
@@ -309,7 +308,9 @@ class GhostState: ObservableObject {
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
             self.currentIndex = newIndex
-            self.injectionHistory = historySnapshot
+            if !self.injectionHistory.isEmpty {
+                self.injectionHistory.removeLast()
+            }
             self.updateCachedActiveState()
         }
 
@@ -340,19 +341,47 @@ class GhostState: ObservableObject {
     }
 
     // MARK: - Chunk Calculation (lock-protected, safe to call from any thread)
+
+    /// Read the next chunk without advancing. Used only by handleKeyDown to peek at \n.
     func getNextChunk() -> String {
         stateLock.lock()
-        let localSourceCode = safeSourceCode
-        let localCurrentIndex = safeCurrentIndex
-        let localInputMode = safeInputMode
+        defer { stateLock.unlock() }
+        return _buildChunk(sourceCode: safeSourceCode, index: safeCurrentIndex, mode: safeInputMode)
+    }
+
+    /// Atomically read the next chunk AND advance the pointer in one lock acquisition.
+    /// This prevents a second concurrent keypress from claiming the same characters.
+    func getAndAdvanceNextChunk() -> String {
+        stateLock.lock()
+        let chunk = _buildChunk(sourceCode: safeSourceCode, index: safeCurrentIndex, mode: safeInputMode)
+        if !chunk.isEmpty {
+            safeCurrentIndex += chunk.count
+            safeInjectionHistory.append(chunk.count)
+        }
+        let newIndex = safeCurrentIndex
+        let chunkCount = chunk.count
         stateLock.unlock()
 
-        guard localCurrentIndex < localSourceCode.count else { return "" }
+        if !chunk.isEmpty {
+            log("Advanced pointer by \(chunkCount) to \(newIndex) / \(sourceCode.count)")
+            DispatchQueue.main.async { [weak self] in
+                guard let self else { return }
+                self.currentIndex = newIndex
+                self.injectionHistory.append(chunkCount)
+                self.updateCachedActiveState()
+            }
+        }
+        return chunk
+    }
 
-        let startOffset = localSourceCode.index(localSourceCode.startIndex, offsetBy: localCurrentIndex)
-        let remaining = localSourceCode[startOffset...]
+    /// Internal helper: compute the next chunk from given parameters. Must be called under stateLock.
+    private func _buildChunk(sourceCode: String, index: Int, mode: InputMode) -> String {
+        guard index < sourceCode.count else { return "" }
 
-        switch localInputMode {
+        let startOffset = sourceCode.index(sourceCode.startIndex, offsetBy: index)
+        let remaining = sourceCode[startOffset...]
+
+        switch mode {
         case .character:
             return String(remaining.prefix(1))
 

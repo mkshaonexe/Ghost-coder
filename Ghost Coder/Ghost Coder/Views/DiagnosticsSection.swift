@@ -58,7 +58,7 @@ struct DiagnosticsSection: View {
                         ScrollViewReader { proxy in
                             ScrollView {
                                 LazyVStack(alignment: .leading, spacing: 4) {
-                                    ForEach(state.diagnosticLogs, id: \.self) { log in
+                                    ForEach(Array(state.diagnosticLogs.enumerated()), id: \.offset) { _, log in
                                         Text(log)
                                             .font(.system(size: 11, design: .monospaced))
                                             .foregroundStyle(colorForLog(log))

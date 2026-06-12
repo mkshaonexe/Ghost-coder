@@ -41,10 +41,11 @@ class CharacterInjector {
     // MARK: - Unicode Character Injection (layout-independent)
 
     private func injectUnicodeCharacter(_ char: Character) {
-        // Convert to UTF-16 UniChar array (handles BMP and supplementary planes)
-        var utf16Units = Array(char.utf16)
+        // Use hidSystemState so the event looks like real hardware input.
+        // Using combinedSessionState here would risk loop-back through our own tap.
+        let source = CGEventSource(stateID: .hidSystemState)
 
-        let source = CGEventSource(stateID: .combinedSessionState)
+        var utf16Units = Array(char.utf16)
 
         guard let keyDown = CGEvent(keyboardEventSource: source, virtualKey: 0, keyDown: true),
               let keyUp   = CGEvent(keyboardEventSource: source, virtualKey: 0, keyDown: false) else {
@@ -56,23 +57,23 @@ class CharacterInjector {
         keyDown.keyboardSetUnicodeString(stringLength: utf16Units.count, unicodeString: &utf16Units)
         keyUp.keyboardSetUnicodeString(stringLength: utf16Units.count, unicodeString: &utf16Units)
 
-        // Post to cgSessionEventTap so synthetic events bypass the Ghost Coder tap
-        // and go directly to the frontmost application.
-        keyDown.post(tap: .cgSessionEventTap)
-        keyUp.post(tap: .cgSessionEventTap)
+        // Post to cgAnnotatedSessionEventTap so synthetic events are delivered to the
+        // frontmost application but bypass our own .cghidEventTap listener, avoiding loops.
+        keyDown.post(tap: .cgAnnotatedSessionEventTap)
+        keyUp.post(tap: .cgAnnotatedSessionEventTap)
     }
 
     // MARK: - Virtual Key Injection (for Return, Tab, Backspace)
 
     func injectVirtualKey(keyCode: CGKeyCode) {
-        let source = CGEventSource(stateID: .combinedSessionState)
+        let source = CGEventSource(stateID: .hidSystemState)
         guard let keyDown = CGEvent(keyboardEventSource: source, virtualKey: keyCode, keyDown: true),
               let keyUp   = CGEvent(keyboardEventSource: source, virtualKey: keyCode, keyDown: false) else {
             print("Ghost Coder: CharacterInjector — CGEvent creation failed for keyCode \(keyCode)")
             return
         }
-        keyDown.post(tap: .cgSessionEventTap)
-        keyUp.post(tap: .cgSessionEventTap)
+        keyDown.post(tap: .cgAnnotatedSessionEventTap)
+        keyUp.post(tap: .cgAnnotatedSessionEventTap)
     }
 
     // MARK: - Backspace Undo

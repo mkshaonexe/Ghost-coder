@@ -38,7 +38,7 @@ struct ContentView: View {
             VStack(spacing: 18) {
                 headerCard
 
-                ScrollView(showsIndicators: true) {
+                ScrollView {
                     VStack(spacing: 18) {
                         PermissionsSection(state: state)
                         SourceFileSection(state: state)
@@ -48,6 +48,7 @@ struct ContentView: View {
                         DiagnosticsSection(state: state)
                     }
                 }
+                .scrollIndicators(.automatic)
                 .scrollContentBackground(.hidden)
 
                 VStack(spacing: 12) {
@@ -65,7 +66,7 @@ struct ContentView: View {
                                 .padding(.vertical, 6)
                                 .background(Color.white.opacity(0.14), in: Capsule())
                         }
-                        .foregroundColor(.white)
+                        .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
                     }
