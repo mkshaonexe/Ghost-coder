@@ -103,11 +103,13 @@ class WindowMonitor {
             isFocused = true
         }
 
-        // 2. Fetch active window title using Accessibility APIs if trusted
+        // 2. Fetch active window title and document URL using Accessibility APIs if trusted
         var windowTitle = "None"
+        var documentURL: URL? = nil
         if axTrusted {
-            if let title = getWindowTitle(for: frontApp) {
-                windowTitle = title
+            if let info = getWindowInfo(for: frontApp) {
+                windowTitle = info.title
+                documentURL = info.documentURL
             } else {
                 windowTitle = "No Window"
             }
@@ -125,7 +127,7 @@ class WindowMonitor {
         // Check folder scope constraint
         var isFolderActive = true
         if isFocused && !state.workspaceFolderPath.isEmpty {
-            isFolderActive = checkFolderScope(windowTitle: windowTitle)
+            isFolderActive = checkFolderScope(windowTitle: windowTitle, documentURL: documentURL)
         }
 
         state.isIDEFocused = isFocused
@@ -133,7 +135,12 @@ class WindowMonitor {
         state.updateCachedActiveState()
     }
 
-    private func getWindowTitle(for app: NSRunningApplication) -> String? {
+    private struct ActiveWindowInfo {
+        let title: String
+        let documentURL: URL?
+    }
+
+    private func getWindowInfo(for app: NSRunningApplication) -> ActiveWindowInfo? {
         let axApp = AXUIElementCreateApplication(app.processIdentifier)
 
         var focusedWindowRef: AnyObject?
@@ -163,23 +170,78 @@ class WindowMonitor {
 
         var titleRef: AnyObject?
         let titleResult = AXUIElementCopyAttributeValue(windowElement, kAXTitleAttribute as CFString, &titleRef)
-        guard titleResult == .success,
-              let windowTitle = titleRef as? String else {
-            return nil
+        let windowTitle = (titleResult == .success ? titleRef as? String : nil) ?? "No Window"
+
+        var docRef: AnyObject?
+        var documentURL: URL? = nil
+        let docResult = AXUIElementCopyAttributeValue(windowElement, kAXDocumentAttribute as CFString, &docRef)
+        if docResult == .success {
+            if let docURL = docRef as? URL {
+                documentURL = docURL
+            } else if let docString = docRef as? String {
+                if docString.hasPrefix("file://") {
+                    documentURL = URL(string: docString)
+                } else {
+                    documentURL = URL(fileURLWithPath: docString)
+                }
+            }
         }
-        return windowTitle
+
+        return ActiveWindowInfo(title: windowTitle, documentURL: documentURL)
     }
 
-    // Check if the IDE's frontmost window title references the configured folder
-    private func checkFolderScope(windowTitle: String) -> Bool {
+    private func isPath(_ path: String, subpathOf parent: String) -> Bool {
+        let parentURL = URL(fileURLWithPath: parent).standardized
+        let pathURL = URL(fileURLWithPath: path).standardized
+        
+        let parentComponents = parentURL.pathComponents
+        let pathComponents = pathURL.pathComponents
+        
+        guard pathComponents.count >= parentComponents.count else { return false }
+        
+        for i in 0..<parentComponents.count {
+            if parentComponents[i] != pathComponents[i] {
+                return false
+            }
+        }
+        return true
+    }
+
+    private func containsExactToken(_ string: String, token: String) -> Bool {
+        let escapedToken = NSRegularExpression.escapedPattern(for: token)
+        let pattern = "(?<![a-zA-Z0-9_-])\(escapedToken)(?![a-zA-Z0-9_-])"
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive) else {
+            return string.localizedCaseInsensitiveContains(token)
+        }
+        let range = NSRange(string.startIndex..<string.endIndex, in: string)
+        return regex.firstMatch(in: string, options: [], range: range) != nil
+    }
+
+    // Check if the IDE's frontmost window references the configured folder via path or title
+    private func checkFolderScope(windowTitle: String, documentURL: URL?) -> Bool {
         if windowTitle == "None" || windowTitle == "No Window" || windowTitle.starts(with: "Restricted") {
             return false
         }
 
-        // Traverse up the workspaceFolderPath hierarchy to find matching directory names.
-        // This is robust if the configured path is a deep subfolder.
-        var currentURL = URL(fileURLWithPath: state.workspaceFolderPath)
-        let homeURL = URL(fileURLWithPath: NSHomeDirectory())
+        // 1. If we have a document URL, check if it's inside the workspace folder
+        if let docURL = documentURL {
+            if isPath(docURL.path, subpathOf: state.workspaceFolderPath) {
+                return true
+            }
+        }
+
+        // 2. Title-based matching fallback
+        let workspaceURL = URL(fileURLWithPath: state.workspaceFolderPath).standardized
+        
+        // Check target folder name itself first, so common folder names like "app" or "src" are not ignored if they are the configured workspace
+        let targetFolderName = workspaceURL.lastPathComponent
+        if !targetFolderName.isEmpty && containsExactToken(windowTitle, token: targetFolderName) {
+            return true
+        }
+
+        // 3. Fallback traversal: Traverse up the workspaceFolderPath hierarchy to find matching directory names.
+        var currentURL = workspaceURL.deletingLastPathComponent()
+        let homeURL = URL(fileURLWithPath: NSHomeDirectory()).standardized
         
         let ignoredFolders: Set<String> = [
             "lib", "src", "test", "app", "build", "dist", "node_modules", "ui", "features",
@@ -191,7 +253,7 @@ class WindowMonitor {
         while currentURL.path != "/" && currentURL.path != homeURL.path {
             let folderName = currentURL.lastPathComponent
             if folderName.count > 2 && !ignoredFolders.contains(folderName.lowercased()) {
-                if windowTitle.localizedCaseInsensitiveContains(folderName) {
+                if containsExactToken(windowTitle, token: folderName) {
                     return true
                 }
             }
