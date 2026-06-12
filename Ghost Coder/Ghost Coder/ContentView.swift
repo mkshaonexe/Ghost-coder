@@ -11,7 +11,7 @@ struct ContentView: View {
     @ObservedObject var state: GhostState
 
     private var appVersion: String {
-        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.4.0"
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.3.3"
     }
 
     var body: some View {
