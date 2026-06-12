@@ -144,8 +144,8 @@ class CharacterInjector {
         keyUp.post(tap: .cgAnnotatedSessionEventTap)
 
         // Issue 2: If we just injected an opening bracket/quote, push the expected
-        // IDE-auto-closer into the skip buffer so we skip it when it appears next.
-        if let closer = Self.autoClosePairs[char] {
+        // IDE-auto-closer onto the skip buffer so we skip it when it appears next.
+        if state.enableAutoCloseSkip, let closer = Self.autoClosePairs[char] {
             autoCloseLock.lock()
             autoCloseSkipBuffer.append(closer)
             autoCloseLock.unlock()
