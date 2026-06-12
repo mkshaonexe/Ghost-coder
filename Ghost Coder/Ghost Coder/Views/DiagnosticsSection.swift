@@ -10,38 +10,74 @@ import SwiftUI
 struct DiagnosticsSection: View {
     @ObservedObject var state: GhostState
     @State private var isExpanded: Bool = false
+    @State private var hasCopied: Bool = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Button(action: {
-                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                    isExpanded.toggle()
-                }
-            }) {
-                HStack {
-                    Text("DIAGNOSTICS & SYSTEM LOGS")
-                        .font(.system(.caption, design: .rounded))
-                        .fontWeight(.bold)
-                        .foregroundStyle(Color.white.opacity(0.6))
-                    
-                    Spacer()
-                    
-                    if !state.diagnosticLogs.isEmpty {
-                        Text("\(state.diagnosticLogs.count) logs")
-                            .font(.system(.caption2, design: .rounded))
-                            .foregroundStyle(Color.white.opacity(0.4))
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(Color.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 6))
+            HStack(spacing: 8) {
+                Button(action: {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                        isExpanded.toggle()
                     }
-                    
+                }) {
+                    HStack {
+                        Text("DIAGNOSTICS & SYSTEM LOGS")
+                            .font(.system(.caption, design: .rounded))
+                            .fontWeight(.bold)
+                            .foregroundStyle(Color.white.opacity(0.6))
+                        
+                        Spacer()
+                        
+                        if !state.diagnosticLogs.isEmpty {
+                            Text("\(state.diagnosticLogs.count) logs")
+                                .font(.system(.caption2, design: .rounded))
+                                .foregroundStyle(Color.white.opacity(0.4))
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Color.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 6))
+                        }
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                
+                if !state.diagnosticLogs.isEmpty {
+                    Button(action: {
+                        let allLogs = state.diagnosticLogs.joined(separator: "\n")
+                        NSPasteboard.general.clearContents()
+                        NSPasteboard.general.setString(allLogs, forType: .string)
+                        
+                        withAnimation(.spring(response: 0.2, dampingFraction: 0.8)) {
+                            hasCopied = true
+                        }
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                            withAnimation(.spring(response: 0.2, dampingFraction: 0.8)) {
+                                hasCopied = false
+                            }
+                        }
+                    }) {
+                        Image(systemName: hasCopied ? "checkmark" : "doc.on.doc")
+                            .font(.caption2)
+                            .foregroundStyle(hasCopied ? Color.green.opacity(0.8) : Color.white.opacity(0.6))
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .help("Copy logs to clipboard")
+                }
+                
+                Button(action: {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                        isExpanded.toggle()
+                    }
+                }) {
                     Image(systemName: "chevron.right")
                         .font(.caption2)
                         .foregroundStyle(Color.white.opacity(0.6))
                         .rotationEffect(.degrees(isExpanded ? 90 : 0))
+                        .contentShape(Rectangle())
                 }
+                .buttonStyle(.plain)
             }
-            .buttonStyle(.plain)
 
             if isExpanded {
                 VStack(spacing: 8) {
