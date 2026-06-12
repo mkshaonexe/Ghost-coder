@@ -75,11 +75,34 @@ class GhostState: ObservableObject {
     @Published var isGhostModeEnabled: Bool = false
     @Published var isIDEFocused: Bool = false
     @Published var isFolderScopeActive: Bool = true  // true when folder constraint passes
+    @Published var isAccessibilityGranted: Bool = false
+    @Published var isInputMonitoringGranted: Bool = false
+    @Published var frontmostAppName: String = "None"
+    @Published var frontmostWindowMainTitle: String = "None"
+    @Published var diagnosticLogs: [String] = []
+    
     @Published var currentIndex: Int = 0 {
         didSet {
             stateLock.lock()
             safeCurrentIndex = currentIndex
             stateLock.unlock()
+        }
+    }
+
+    func log(_ message: String) {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm:ss"
+        let timestamp = formatter.string(from: Date())
+        let formattedMessage = "[\(timestamp)] \(message)"
+        
+        print("Ghost Coder Log: \(formattedMessage)")
+        
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            self.diagnosticLogs.insert(formattedMessage, at: 0)
+            if self.diagnosticLogs.count > 50 {
+                self.diagnosticLogs.removeLast()
+            }
         }
     }
 
@@ -200,12 +223,15 @@ class GhostState: ObservableObject {
         let content: String
         do {
             content = try String(contentsOf: url, encoding: .utf8)
+            log("Loaded source file: \(url.lastPathComponent) (UTF-8, \(content.count) characters)")
         } catch {
             // Attempt system-preferred encoding as fallback (handles latin-1 / legacy files)
             guard let fallback = try? String(contentsOf: url, encoding: .isoLatin1) else {
+                log("Failed to load source file: \(url.lastPathComponent) (Error: \(error.localizedDescription))")
                 throw error  // Re-throw the original UTF-8 error with full info
             }
             content = fallback
+            log("Loaded source file: \(url.lastPathComponent) (ISO-Latin1 fallback, \(content.count) characters)")
         }
 
         stateLock.lock()
@@ -222,6 +248,7 @@ class GhostState: ObservableObject {
     }
 
     func clearSourceFile() {
+        log("Cleared source file: \(sourceFileName)")
         stateLock.lock()
         safeSourceCode = ""
         safeCurrentIndex = 0
@@ -236,6 +263,7 @@ class GhostState: ObservableObject {
     }
 
     func reset() {
+        log("Reset typing pointer to 0")
         stateLock.lock()
         safeCurrentIndex = 0
         safeInjectionHistory.removeAll()
@@ -255,6 +283,8 @@ class GhostState: ObservableObject {
         let historySnapshot = safeInjectionHistory
         stateLock.unlock()
 
+        log("Advanced pointer by \(count) to \(newIndex) / \(sourceCode.count)")
+
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
             self.currentIndex = newIndex
@@ -273,6 +303,8 @@ class GhostState: ObservableObject {
         let newIndex = safeCurrentIndex
         let historySnapshot = safeInjectionHistory
         stateLock.unlock()
+
+        log("Undid last injection: removed \(count) chars, pointer now at \(newIndex)")
 
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }

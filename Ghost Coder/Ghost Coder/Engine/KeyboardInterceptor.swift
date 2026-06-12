@@ -46,12 +46,16 @@ class KeyboardInterceptor {
     func start() {
         guard eventTap == nil else { return }
 
+        state.log("Starting keyboard interceptor...")
+
         guard checkAccessibilityPermission() else {
+            state.log("Warning: Accessibility permission not granted. Retrying every 1s...")
             // No retry timer already running — start one that polls every second
             if permissionRetryTimer == nil {
                 permissionRetryTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
                     guard let self = self else { return }
                     if self.checkAccessibilityPermission() {
+                        self.state.log("Accessibility permission detected. Starting tap...")
                         self.permissionRetryTimer?.invalidate()
                         self.permissionRetryTimer = nil
                         self.start()
@@ -85,7 +89,7 @@ class KeyboardInterceptor {
         )
 
         guard let tap = eventTap else {
-            print("Ghost Coder: Failed to create CGEventTap. Check Accessibility permissions.")
+            state.log("Error: Failed to create CGEventTap. Accessibility permission may need to be reset.")
             // Retry after a short delay in case the system needs a moment
             DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
                 self?.eventTap = nil
@@ -97,18 +101,21 @@ class KeyboardInterceptor {
         runLoopSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0)
         CFRunLoopAddSource(CFRunLoopGetMain(), runLoopSource, .commonModes)
         CGEvent.tapEnable(tap: tap, enable: true)
+        
+        state.log("Keyboard interceptor active. Event tap registered on RunLoop.")
 
         // Watchdog: macOS can silently disable taps that appear unresponsive
         watchdogTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { [weak self] _ in
-            guard let tap = self?.eventTap else { return }
+            guard let self = self, let tap = self.eventTap else { return }
             if !CGEvent.tapIsEnabled(tap: tap) {
-                print("Ghost Coder: Watchdog re-enabling disabled event tap.")
+                self.state.log("Watchdog alert: Event tap was disabled by the OS. Re-enabling...")
                 CGEvent.tapEnable(tap: tap, enable: true)
             }
         }
     }
 
     func stop() {
+        state.log("Stopping keyboard interceptor...")
         permissionRetryTimer?.invalidate()
         permissionRetryTimer = nil
 
@@ -122,6 +129,7 @@ class KeyboardInterceptor {
         }
         eventTap = nil
         runLoopSource = nil
+        state.log("Keyboard interceptor stopped.")
     }
 
     // MARK: - Accessibility Permission

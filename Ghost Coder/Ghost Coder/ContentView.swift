@@ -40,10 +40,12 @@ struct ContentView: View {
 
                 ScrollView(showsIndicators: true) {
                     VStack(spacing: 18) {
+                        PermissionsSection(state: state)
                         SourceFileSection(state: state)
                         TargetSection(state: state)
                         ModeSection(state: state)
                         ProgressSection(state: state)
+                        DiagnosticsSection(state: state)
                     }
                 }
                 .scrollContentBackground(.hidden)

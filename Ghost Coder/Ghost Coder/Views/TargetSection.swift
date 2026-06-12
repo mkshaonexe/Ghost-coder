@@ -33,7 +33,7 @@ struct TargetSection: View {
                     .pickerStyle(.menu)
                     .frame(width: 160)
                     .labelsHidden()
-                    .onChange(of: state.ideTarget) {
+                    .onChange(of: state.ideTarget) { _ in
                         state.updateCachedActiveState()
                     }
                 }
@@ -57,7 +57,7 @@ struct TargetSection: View {
                         TextField("e.g. /Users/username/projects/my-app", text: $state.workspaceFolderPath)
                             .textFieldStyle(.roundedBorder)
                             .font(.system(.body, design: .monospaced))
-                            .onChange(of: state.workspaceFolderPath) {
+                            .onChange(of: state.workspaceFolderPath) { _ in
                                 state.updateCachedActiveState()
                             }
 
@@ -77,6 +77,50 @@ struct TargetSection: View {
                         .foregroundStyle(Color.white.opacity(0.72))
                     Spacer()
                 }
+
+                Divider()
+
+                // Live Monitor Dashboard
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("LIVE MONITOR (DUAL-MONITOR DASHBOARD)")
+                        .font(.system(size: 9, weight: .bold, design: .rounded))
+                        .foregroundStyle(Color.white.opacity(0.5))
+
+                    HStack(spacing: 8) {
+                        Image(systemName: "app.dashed")
+                            .foregroundStyle(state.isIDEFocused ? Color.green : Color.orange)
+                        Text("Active App:")
+                            .font(.caption)
+                            .foregroundStyle(Color.white.opacity(0.7))
+                        Text(state.frontmostAppName)
+                            .font(.caption)
+                            .fontWeight(.bold)
+                            .foregroundStyle(.white)
+                        Spacer()
+                        Text(state.isIDEFocused ? "🟢 TARGET MATCHED" : "🔴 TARGET FOCUS NEEDED")
+                            .font(.system(size: 9, weight: .black, design: .rounded))
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(state.isIDEFocused ? Color.green.opacity(0.2) : Color.orange.opacity(0.2), in: Capsule())
+                            .foregroundStyle(state.isIDEFocused ? Color.green : Color.orange)
+                    }
+
+                    HStack(spacing: 8) {
+                        Image(systemName: "macwindow.on.rectangle")
+                            .foregroundStyle((state.isFolderScopeActive && state.isIDEFocused) ? Color.green : Color.orange)
+                        Text("Active Window:")
+                            .font(.caption)
+                            .foregroundStyle(Color.white.opacity(0.7))
+                        Text(state.frontmostWindowMainTitle)
+                            .font(.caption)
+                            .fontWeight(.bold)
+                            .foregroundStyle(.white)
+                            .lineLimit(1)
+                        Spacer()
+                    }
+                }
+                .padding(8)
+                .background(Color.white.opacity(0.04), in: RoundedRectangle(cornerRadius: 8))
             }
             .padding(12)
             .background(

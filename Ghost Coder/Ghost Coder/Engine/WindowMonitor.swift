@@ -66,11 +66,32 @@ class WindowMonitor {
             return
         }
 
+        // 1. Check & Update Permissions status
+        let axTrusted = AXIsProcessTrusted()
+        let listenTrusted = CGPreflightListenEventAccess()
+
+        if state.isAccessibilityGranted != axTrusted {
+            state.isAccessibilityGranted = axTrusted
+            state.log("Accessibility permission status changed: \(axTrusted ? "Granted" : "Denied")")
+        }
+        if state.isInputMonitoringGranted != listenTrusted {
+            state.isInputMonitoringGranted = listenTrusted
+            state.log("Input Monitoring permission status changed: \(listenTrusted ? "Granted" : "Denied")")
+        }
+
         guard let frontApp = NSWorkspace.shared.frontmostApplication else {
             state.isIDEFocused = false
             state.isFolderScopeActive = true
+            state.frontmostAppName = "None"
+            state.frontmostWindowMainTitle = "None"
             state.updateCachedActiveState()
             return
+        }
+
+        let appName = frontApp.localizedName ?? "Unknown App"
+        if state.frontmostAppName != appName {
+            state.frontmostAppName = appName
+            state.log("Active application changed to: \(appName)")
         }
 
         // Check if target IDE is focused
@@ -82,10 +103,29 @@ class WindowMonitor {
             isFocused = true
         }
 
+        // 2. Fetch active window title using Accessibility APIs if trusted
+        var windowTitle = "None"
+        if axTrusted {
+            if let title = getWindowTitle(for: frontApp) {
+                windowTitle = title
+            } else {
+                windowTitle = "No Window"
+            }
+        } else {
+            windowTitle = "Restricted (Accessibility Required)"
+        }
+
+        if state.frontmostWindowMainTitle != windowTitle {
+            state.frontmostWindowMainTitle = windowTitle
+            if isFocused && axTrusted {
+                state.log("Active target window title: \"\(windowTitle)\"")
+            }
+        }
+
         // Check folder scope constraint
         var isFolderActive = true
         if isFocused && !state.workspaceFolderPath.isEmpty {
-            isFolderActive = checkFolderScope(app: frontApp)
+            isFolderActive = checkFolderScope(windowTitle: windowTitle)
         }
 
         state.isIDEFocused = isFocused
@@ -93,8 +133,7 @@ class WindowMonitor {
         state.updateCachedActiveState()
     }
 
-    // Check if the IDE's frontmost window title references the configured folder
-    private func checkFolderScope(app: NSRunningApplication) -> Bool {
+    private func getWindowTitle(for app: NSRunningApplication) -> String? {
         let axApp = AXUIElementCreateApplication(app.processIdentifier)
 
         var focusedWindowRef: AnyObject?
@@ -113,22 +152,28 @@ class WindowMonitor {
             guard windowsResult == .success,
                   let windows = windowsRef as? [AXUIElement],
                   let frontWindow = windows.first else {
-                print("Ghost Coder: WindowMonitor - Failed to get windows list (error: \(windowsResult.rawValue))")
-                return true // Assume true on AX errors/transient states to avoid silent pause
+                return nil
             }
             windowElement = frontWindow
         }
 
         guard let windowElement else {
-            return true
+            return nil
         }
 
         var titleRef: AnyObject?
         let titleResult = AXUIElementCopyAttributeValue(windowElement, kAXTitleAttribute as CFString, &titleRef)
         guard titleResult == .success,
               let windowTitle = titleRef as? String else {
-            print("Ghost Coder: WindowMonitor - Failed to get window title (error: \(titleResult.rawValue))")
-            return true // Assume true on AX errors/transient states to avoid silent pause
+            return nil
+        }
+        return windowTitle
+    }
+
+    // Check if the IDE's frontmost window title references the configured folder
+    private func checkFolderScope(windowTitle: String) -> Bool {
+        if windowTitle == "None" || windowTitle == "No Window" || windowTitle.starts(with: "Restricted") {
+            return false
         }
 
         // Traverse up the workspaceFolderPath hierarchy to find matching directory names.
