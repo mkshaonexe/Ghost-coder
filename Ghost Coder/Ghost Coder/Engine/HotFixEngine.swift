@@ -172,32 +172,29 @@ class HotFixEngine {
     // MARK: - Read Editor Content (Accessibility API)
 
     private func readEditorContent() -> String? {
-        // Use the frontmost application — when Ghost Coder is active the target
-        // IDE is always in front.
-        guard let frontApp = NSWorkspace.shared.frontmostApplication else { return nil }
+        let filePath = state.safeTargetFilePathValue
+        guard !filePath.isEmpty else {
+            state.log("HotFix: target file path is empty — cannot read editor content")
+            return nil
+        }
 
-        let axApp = AXUIElementCreateApplication(frontApp.processIdentifier)
+        // Synthesize Cmd+S keypress to force VS Code to save editor content to disk.
+        // keyCode 1 = S, flags = .maskCommand
+        synthesizeKey(keyCode: 1, flags: .maskCommand)
+        
+        // Wait 0.15s for the OS/IDE to finish writing to disk
+        Thread.sleep(forTimeInterval: 0.15)
 
-        var focusedRef: AnyObject?
-        guard AXUIElementCopyAttributeValue(
-            axApp,
-            kAXFocusedUIElementAttribute as CFString,
-            &focusedRef
-        ) == .success else { return nil }
-
-        let focused = focusedRef as! AXUIElement
-
-        var valueRef: AnyObject?
-        guard AXUIElementCopyAttributeValue(
-            focused,
-            kAXValueAttribute as CFString,
-            &valueRef
-        ) == .success,
-              let value = valueRef as? String,
-              !value.isEmpty
-        else { return nil }
-
-        return value
+        do {
+            return try String(contentsOfFile: filePath, encoding: .utf8)
+        } catch {
+            // Attempt system default/Latin-1 encoding fallback if UTF-8 fails
+            if let fallbackContent = try? String(contentsOfFile: filePath, encoding: .isoLatin1) {
+                return fallbackContent
+            }
+            state.log("HotFix: Failed to read target file from disk: \(error.localizedDescription)")
+            return nil
+        }
     }
 
     // MARK: - Diff Computation
