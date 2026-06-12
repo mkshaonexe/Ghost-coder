@@ -165,8 +165,8 @@ class CharacterInjector {
 
     // MARK: - Backspace Undo
 
-    func handleBackspace() {
-        guard let last = state.popLastInjection() else { return }
+    func handleBackspace() -> (count: Int, text: String)? {
+        guard let last = state.popLastInjection() else { return nil }
         let lastChunkSize = last.count
         let poppedText = last.text
 
@@ -190,5 +190,6 @@ class CharacterInjector {
                 Thread.sleep(forTimeInterval: 0.020)  // 20ms between backspaces for stability in VS Code
             }
         }
+        return last
     }
 }
