@@ -27,11 +27,10 @@ struct Ghost_CoderApp: App {
         let m = MainWindowController(state: s)
         let c = CLIServer(state: s)
 
-        // Wire up the HotFix engine — must be created AFTER both `s` and `i`
-        // exist. `i` retains it strongly; `s` holds a weak back-reference.
-        let hf = HotFixEngine(state: s, interceptor: i)
-        s.hotFixEngine = hf
-        i.hotFixEngine = hf
+        // Restore any crashed settings backups on startup
+        VSCodeSettingsManager.shared.checkAndRestoreCrashedBackups(workspaceFolderPath: s.workspaceFolderPath) { msg in
+            s.log(msg)
+        }
         
         _state = StateObject(wrappedValue: s)
         self.interceptor = i
@@ -47,6 +46,9 @@ struct Ghost_CoderApp: App {
             object: nil,
             queue: .main
         ) { _ in
+            VSCodeSettingsManager.shared.restoreSettings() { msg in
+                s.log(msg)
+            }
             s.responseLogger?.endSession()
         }
         
