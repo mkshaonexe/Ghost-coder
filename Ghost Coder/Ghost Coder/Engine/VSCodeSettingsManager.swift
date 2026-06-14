@@ -123,6 +123,39 @@ class VSCodeSettingsManager {
         }
     }
     
+    func verifyAppliedSettings(workspaceFolderPath: String?) -> Bool {
+        let urls = getSettingsURLs(workspaceFolderPath: workspaceFolderPath)
+        var verifiedAtLeastOne = false
+        
+        for url in urls {
+            guard fileManager.fileExists(atPath: url.path) else { continue }
+            guard let content = try? String(contentsOf: url, encoding: .utf8) else { continue }
+            
+            let expectedSettings = [
+                "editor.autoClosingBrackets",
+                "editor.autoClosingQuotes",
+                "editor.autoIndent",
+                "editor.formatOnType",
+                "editor.acceptSuggestionOnEnter",
+                "editor.acceptSuggestionOnCommitCharacter"
+            ]
+            
+            var allMatched = true
+            for key in expectedSettings {
+                if !content.contains("\"\(key)\"") {
+                    allMatched = false
+                    break
+                }
+            }
+            
+            if allMatched {
+                verifiedAtLeastOne = true
+            }
+        }
+        
+        return verifiedAtLeastOne
+    }
+    
     private func applyGhostSettings(to jsonString: String) -> String {
         var result = jsonString
         
@@ -146,10 +179,22 @@ class VSCodeSettingsManager {
                     result = result.replacingOccurrences(of: pattern, with: newSetting, options: .regularExpression)
                 } else {
                     if let lastBraceIndex = result.lastIndex(of: "}") {
-                        let beforeBrace = result[..<lastBraceIndex].trimmingCharacters(in: .whitespacesAndNewlines)
-                        let separator = (beforeBrace.hasSuffix(",") || beforeBrace.hasSuffix("{") || beforeBrace.isEmpty) ? "" : ",\n"
-                        let insertString = "\(separator)    \(newSetting)\n"
-                        result.insert(contentsOf: insertString, at: lastBraceIndex)
+                        var insertIndex = lastBraceIndex
+                        // Backtrack past any whitespace/newlines preceding }
+                        while insertIndex > result.startIndex {
+                            let prevIndex = result.index(before: insertIndex)
+                            let char = result[prevIndex]
+                            if char.isNewline || char.isWhitespace {
+                                insertIndex = prevIndex
+                            } else {
+                                break
+                            }
+                        }
+                        
+                        let beforeInsertion = result[..<insertIndex].trimmingCharacters(in: .whitespacesAndNewlines)
+                        let separator = (beforeInsertion.hasSuffix(",") || beforeInsertion.hasSuffix("{") || beforeInsertion.isEmpty) ? "" : ","
+                        let insertString = "\(separator)\n    \(newSetting)"
+                        result.insert(contentsOf: insertString, at: insertIndex)
                     }
                 }
             }

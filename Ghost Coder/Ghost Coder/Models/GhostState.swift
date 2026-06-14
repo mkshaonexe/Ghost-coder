@@ -117,6 +117,8 @@ class GhostState: ObservableObject {
     }
 
     // MARK: - Runtime State (not persisted)
+    @Published var vsCodeTestStatus: String? = nil
+    @Published var isTestingVSCode: Bool = false
     @Published var isGhostModeEnabled: Bool = false {
         didSet {
             if isGhostModeEnabled {

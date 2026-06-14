@@ -84,6 +84,52 @@ struct TargetSection: View {
 
                 Divider()
 
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Image(systemName: "checkmark.circle.badge.questionmark")
+                            .foregroundStyle(.cyan)
+                        Text("VS CODE CONFIGURATION TEST")
+                            .font(.system(.caption, design: .rounded))
+                            .fontWeight(.bold)
+                            .foregroundStyle(Color.white.opacity(0.6))
+                        Spacer()
+                    }
+
+                    HStack(spacing: 12) {
+                        Button(action: runVSCodeConnectionTest) {
+                            HStack(spacing: 6) {
+                                if state.isTestingVSCode {
+                                    ProgressView()
+                                        .controlSize(.small)
+                                } else {
+                                    Image(systemName: "play.circle.fill")
+                                }
+                                Text(state.isTestingVSCode ? "Testing..." : "Test VS Code Integration")
+                            }
+                        }
+                        .buttonStyle(.bordered)
+                        .disabled(state.isTestingVSCode)
+
+                        if let status = state.vsCodeTestStatus {
+                            Text(status)
+                                .font(.system(size: 11, weight: .bold, design: .rounded))
+                                .foregroundStyle(status.contains("Success") ? Color.green : (status.contains("Failed") ? Color.red : Color.white.opacity(0.8)))
+                                .transition(.opacity)
+                        }
+                    }
+                }
+                .padding(10)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color.white.opacity(0.03))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(Color.white.opacity(0.06), lineWidth: 1)
+                )
+
+                Divider()
+
                 // Live Monitor Dashboard
                 VStack(alignment: .leading, spacing: 10) {
                     HStack(spacing: 6) {
@@ -205,6 +251,61 @@ struct TargetSection: View {
             state.targetFilePath = url.path
             state.workspaceFolderPath = url.deletingLastPathComponent().path
             state.updateCachedActiveState()
+        }
+    }
+
+    private func runVSCodeConnectionTest() {
+        state.isTestingVSCode = true
+        state.vsCodeTestStatus = "Modifying settings..."
+        
+        DispatchQueue.global(qos: .userInitiated).async {
+            // Backup and apply settings
+            VSCodeSettingsManager.shared.backupAndApplySettings(workspaceFolderPath: state.workspaceFolderPath) { msg in
+                state.log(msg)
+            }
+            
+            // Wait 0.5s for write to complete
+            Thread.sleep(forTimeInterval: 0.5)
+            
+            // Verify
+            let isVerified = VSCodeSettingsManager.shared.verifyAppliedSettings(workspaceFolderPath: state.workspaceFolderPath)
+            
+            DispatchQueue.main.async {
+                if isVerified {
+                    state.vsCodeTestStatus = "Success! Settings verified. Opening VS Code..."
+                    
+                    // Launch/focus VS Code
+                    if let appURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.microsoft.VSCode") {
+                        let config = NSWorkspace.OpenConfiguration()
+                        NSWorkspace.shared.openApplication(at: appURL, configuration: config, completionHandler: nil)
+                    } else if let appURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.microsoft.VSCodeInsiders") {
+                        let config = NSWorkspace.OpenConfiguration()
+                        NSWorkspace.shared.openApplication(at: appURL, configuration: config, completionHandler: nil)
+                    }
+                    
+                    // Countdown to restore original settings
+                    var countdown = 5
+                    Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { timer in
+                        countdown -= 1
+                        if countdown > 0 {
+                            state.vsCodeTestStatus = "Success! Reverting settings in \(countdown)s..."
+                        } else {
+                            timer.invalidate()
+                            VSCodeSettingsManager.shared.restoreSettings { msg in
+                                state.log(msg)
+                            }
+                            state.vsCodeTestStatus = "Success! Original settings restored."
+                            state.isTestingVSCode = false
+                        }
+                    }
+                } else {
+                    state.vsCodeTestStatus = "Failed to verify settings.json."
+                    VSCodeSettingsManager.shared.restoreSettings { msg in
+                        state.log(msg)
+                    }
+                    state.isTestingVSCode = false
+                }
+            }
         }
     }
 }
