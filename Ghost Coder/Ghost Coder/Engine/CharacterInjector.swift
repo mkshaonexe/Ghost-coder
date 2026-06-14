@@ -13,18 +13,6 @@ import Darwin
 class CharacterInjector {
     private let state: GhostState
 
-    // MARK: - Auto-Close Skip Buffer (Issue 2)
-    private let autoCloseLock = NSLock()
-    private var autoCloseSkipBuffer: [Character] = []
-
-    private static let autoClosePairs: [Character: Character] = [
-        "{": "}",
-        "(": ")",
-        "[": "]",
-        "\"": "\"",
-        "'": "'"
-    ]
-
     init(state: GhostState) {
         self.state = state
     }
@@ -36,35 +24,8 @@ class CharacterInjector {
         let chars = Array(text)
         let isMultiChar = chars.count > 1
 
-        if state.currentIndex <= text.count {
-            autoCloseLock.lock()
-            autoCloseSkipBuffer.removeAll()
-            autoCloseLock.unlock()
-        }
-
-        // Issue 1: If the chunk contains a newline, deliver the whole thing via
-        // clipboard paste so VS Code's auto-indent engine never fires.
-        if text.contains("\n") {
-            pasteViaClipboard(text)
-            return
-        }
-
         for char in chars {
-            // Check if we should skip the character due to IDE auto-close
-            autoCloseLock.lock()
-            if let last = autoCloseSkipBuffer.last, last == char {
-                autoCloseSkipBuffer.removeLast()
-                autoCloseLock.unlock()
-                injectVirtualKey(keyCode: 124) // Right Arrow — navigate past IDE's auto-closer
-            } else {
-                autoCloseLock.unlock()
-                injectUnicodeCharacter(char)
-                if state.safeEnableAutoCloseSkip, let closer = Self.autoClosePairs[char] {
-                    autoCloseLock.lock()
-                    autoCloseSkipBuffer.append(closer)
-                    autoCloseLock.unlock()
-                }
-            }
+            injectUnicodeCharacter(char)
 
             if isMultiChar {
                 Thread.sleep(forTimeInterval: delaySeconds)
@@ -75,12 +36,7 @@ class CharacterInjector {
     // MARK: - Unicode Character Injection (layout-independent)
 
     private func injectUnicodeCharacter(_ char: Character) {
-        // Issue 3: Characters whose UTF-16 representation is longer than 2 units (surrogate pairs, etc.)
         var utf16Units = Array(char.utf16)
-        if utf16Units.count > 2 {
-            pasteViaClipboard(String(char))
-            return
-        }
 
         let source = CGEventSource(stateID: .hidSystemState)
         guard let keyDown = CGEvent(keyboardEventSource: source, virtualKey: 0, keyDown: true),
@@ -120,68 +76,11 @@ class CharacterInjector {
         keyUp.post(tap: .cgAnnotatedSessionEventTap)
     }
 
-    // MARK: - Clipboard Paste Mode (Issue 1 & 3)
-
-    private func pasteViaClipboard(_ text: String) {
-        let pasteboard = NSPasteboard.general
-        let previousString = pasteboard.string(forType: .string)
-
-        pasteboard.clearContents()
-        pasteboard.setString(text, forType: .string)
-
-        let source = CGEventSource(stateID: .hidSystemState)
-        guard
-            let keyDown = CGEvent(keyboardEventSource: source, virtualKey: 9, keyDown: true),  // keyCode 9 = V
-            let keyUp   = CGEvent(keyboardEventSource: source, virtualKey: 9, keyDown: false)
-        else {
-            print("Ghost Coder: CharacterInjector — CGEvent creation failed for Cmd+V paste")
-            if let prev = previousString {
-                pasteboard.clearContents()
-                pasteboard.setString(prev, forType: .string)
-            }
-            return
-        }
-
-        // macOS 15+ timestamp issue fix: add valid system timestamp to synthetic events
-        let timestamp = clock_gettime_nsec_np(CLOCK_UPTIME_RAW)
-        keyDown.timestamp = CGEventTimestamp(timestamp)
-        keyUp.timestamp = CGEventTimestamp(timestamp)
-
-        keyDown.flags = .maskCommand
-        keyUp.flags   = .maskCommand
-
-        keyDown.post(tap: .cgAnnotatedSessionEventTap)
-        keyUp.post(tap: .cgAnnotatedSessionEventTap)
-
-        DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + 1.2) {
-            if let prev = previousString {
-                pasteboard.clearContents()
-                pasteboard.setString(prev, forType: .string)
-            } else {
-                pasteboard.clearContents()
-            }
-        }
-    }
-
     // MARK: - Backspace Undo
 
     func handleBackspace() -> (count: Int, text: String)? {
         guard let last = state.popLastInjection() else { return nil }
         let lastChunkSize = last.count
-        let poppedText = last.text
-
-        // Revert pending auto-closes for the popped characters (in reverse order)
-        if state.safeEnableAutoCloseSkip {
-            autoCloseLock.lock()
-            for char in poppedText.reversed() {
-                if let closingChar = Self.autoClosePairs[char] {
-                    if let lastPending = autoCloseSkipBuffer.last, lastPending == closingChar {
-                        autoCloseSkipBuffer.removeLast()
-                    }
-                }
-            }
-            autoCloseLock.unlock()
-        }
 
         // Inject N backspace events to delete the injected characters from the IDE
         for i in 0..<lastChunkSize {
