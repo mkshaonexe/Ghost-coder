@@ -73,9 +73,7 @@ class GhostState: ObservableObject {
     }()
     var responseLogger: ResponseLogger?
 
-    // MARK: - HotFix Engine
-    /// Weak to avoid a retain cycle (HotFixEngine holds GhostState strongly via state).
-    weak var hotFixEngine: HotFixEngine?
+
 
     // MARK: - Configuration (user-set, persisted)
     @Published var sourceCode: String = "" {
@@ -87,7 +85,15 @@ class GhostState: ObservableObject {
     }
     @Published var sourceFileName: String = ""
     @Published var ideTarget: IDETarget = .vsCode
-    @Published var workspaceFolderPath: String = ""
+    @Published var workspaceFolderPath: String = "" {
+        didSet {
+            if isGhostModeEnabled {
+                VSCodeSettingsManager.shared.backupAndApplySettings(workspaceFolderPath: workspaceFolderPath) { [weak self] msg in
+                    self?.log(msg)
+                }
+            }
+        }
+    }
     @Published var targetFilePath: String = "" {
         didSet {
             stateLock.lock()
@@ -111,7 +117,19 @@ class GhostState: ObservableObject {
     }
 
     // MARK: - Runtime State (not persisted)
-    @Published var isGhostModeEnabled: Bool = false
+    @Published var isGhostModeEnabled: Bool = false {
+        didSet {
+            if isGhostModeEnabled {
+                VSCodeSettingsManager.shared.backupAndApplySettings(workspaceFolderPath: workspaceFolderPath) { [weak self] msg in
+                    self?.log(msg)
+                }
+            } else {
+                VSCodeSettingsManager.shared.restoreSettings() { [weak self] msg in
+                    self?.log(msg)
+                }
+            }
+        }
+    }
     @Published var isIDEFocused: Bool = false
     @Published var isFolderScopeActive: Bool = true  // true when folder constraint passes
     @Published var isAccessibilityGranted: Bool = false
@@ -183,25 +201,7 @@ class GhostState: ObservableObject {
     private var safeInjectionHistory: [Int] = []
     private var _safeEnableAutoCloseSkip: Bool = true
 
-    // MARK: - HotFix running flag (written on injectionQueue, read on CGEventTap thread)
-    private let hotfixStateLock = NSLock()
-    private var _isHotFixRunning: Bool = false
 
-    /// `true` while HotFixEngine is performing a correction.
-    /// KeyboardInterceptor reads this from the CGEventTap callback thread to
-    /// swallow keypresses during the fix.
-    var isHotFixRunning: Bool {
-        get {
-            hotfixStateLock.lock()
-            defer { hotfixStateLock.unlock() }
-            return _isHotFixRunning
-        }
-        set {
-            hotfixStateLock.lock()
-            _isHotFixRunning = newValue
-            hotfixStateLock.unlock()
-        }
-    }
 
     // MARK: - Thread-safe accessors for HotFixEngine
 
@@ -393,8 +393,7 @@ class GhostState: ObservableObject {
         currentIndex = 0
         injectionHistory.removeAll()
 
-        // Reset HotFix milestone tracking whenever the pointer resets
-        hotFixEngine?.reset()
+
     }
 
     // MARK: - Thread-safe State Modifiers (called from background/tap threads)
