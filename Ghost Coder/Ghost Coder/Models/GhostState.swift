@@ -137,10 +137,17 @@ class GhostState: ObservableObject {
                 VSCodeSettingsManager.shared.backupAndApplySettings(workspaceFolderPath: workspaceFolderPath) { [weak self] msg in
                     self?.log(msg)
                 }
+                responseLogger?.startSession(
+                    sourceFile: sourceFileName,
+                    ideTarget: ideTarget.rawValue,
+                    inputMode: inputMode.rawValue,
+                    workspaceFolderPath: workspaceFolderPath
+                )
             } else {
                 VSCodeSettingsManager.shared.restoreSettings() { [weak self] msg in
                     self?.log(msg)
                 }
+                responseLogger?.endSession()
             }
         }
     }
@@ -371,11 +378,6 @@ class GhostState: ObservableObject {
         sourceCode = content
         sourceFileName = url.lastPathComponent
         
-        responseLogger?.startSession(
-            sourceFile: sourceFileName,
-            ideTarget: ideTarget.rawValue,
-            inputMode: inputMode.rawValue
-        )
         
         isGhostModeEnabled = false // Auto-pause when new file is loaded
         reset()
@@ -446,6 +448,16 @@ class GhostState: ObservableObject {
         stateLock.unlock()
 
         log("Aborted injection: only \(injected)/\(total) chars injected. Reverted pointer by \(diff) to \(newIndex)")
+        
+        responseLogger?.logAbortedEvent(
+            total: total,
+            injected: injected,
+            sourceFile: sourceFileName,
+            workspaceFolder: workspaceFolderPath,
+            targetFilePath: safeTargetFilePathValue,
+            cumulativeIndex: newIndex,
+            sourceTotal: safeSourceLength
+        )
 
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }

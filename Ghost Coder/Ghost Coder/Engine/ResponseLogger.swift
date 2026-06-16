@@ -29,6 +29,11 @@ nonisolated struct KeystrokeEvent: Encodable, Sendable {
     let virtualOutput: VirtualOutputInfo
     let chunkSize: Int
     let mode: String
+    let sourceFile: String
+    let workspaceFolder: String
+    let targetFilePath: String
+    let cumulativeIndex: Int
+    let sourceTotal: Int
 }
 
 nonisolated struct UndoEvent: Encodable, Sendable {
@@ -38,6 +43,24 @@ nonisolated struct UndoEvent: Encodable, Sendable {
     let physicalKey: PhysicalKeyInfo
     let undoneChunkSize: Int
     let undoneText: String
+    let sourceFile: String
+    let workspaceFolder: String
+    let targetFilePath: String
+    let cumulativeIndex: Int
+    let sourceTotal: Int
+}
+
+nonisolated struct AbortedEvent: Encodable, Sendable {
+    let type = "injection_aborted"
+    let seq: Int
+    let timestamp: String
+    let total: Int
+    let injected: Int
+    let sourceFile: String
+    let workspaceFolder: String
+    let targetFilePath: String
+    let cumulativeIndex: Int
+    let sourceTotal: Int
 }
 
 nonisolated struct SessionMetadata: Encodable, Sendable {
@@ -51,9 +74,9 @@ nonisolated struct SessionMetadata: Encodable, Sendable {
 }
 
 class ResponseLogger {
-    private let sessionId: String
-    private let responseLogURL: URL
-    private let diagnosticLogURL: URL
+    private var sessionId: String
+    private var responseLogURL: URL
+    private var diagnosticLogURL: URL
     private let logQueue = DispatchQueue(label: "com.ghostcoder.logging", qos: .background)
     // eventSequence is only ever accessed inside logQueue.async blocks on this serial queue —
     // no additional lock needed.
@@ -79,15 +102,45 @@ class ResponseLogger {
         self.diagnosticLogURL = logsDirectory.appendingPathComponent("session_\(sessionId)_diagnostic.log")
     }
     
-    func startSession(sourceFile: String, ideTarget: String, inputMode: String) {
+    func startSession(sourceFile: String, ideTarget: String, inputMode: String, workspaceFolderPath: String) {
         logQueue.async { [weak self] in
             guard let self = self else { return }
             
+            // Generate a fresh session ID for this specific active period
+            let uuid = UUID().uuidString.prefix(8).lowercased()
+            let timestamp = Int(Date().timeIntervalSince1970)
+            let newSessionId = "\(uuid)-\(timestamp)"
+            self.sessionId = newSessionId
+            
+            let fileManager = FileManager.default
+            let logsDirectory: URL
+            
+            if !workspaceFolderPath.isEmpty {
+                // Save logs inside the user's workspace folder
+                let wsURL = URL(fileURLWithPath: workspaceFolderPath)
+                logsDirectory = wsURL.appendingPathComponent(".ghostcoder/logs", isDirectory: true)
+            } else {
+                // Fallback to global logs directory
+                let homeDirectory = fileManager.homeDirectoryForCurrentUser
+                logsDirectory = homeDirectory.appendingPathComponent(".ghostcoder/logs/session_logs", isDirectory: true)
+            }
+            
+            do {
+                try fileManager.createDirectory(at: logsDirectory, withIntermediateDirectories: true, attributes: nil)
+            } catch {
+                print("ResponseLogger: Failed to create logs directory '\(logsDirectory)': \(error)")
+            }
+            
+            self.responseLogURL = logsDirectory.appendingPathComponent("session_\(newSessionId)_response.jsonl")
+            self.diagnosticLogURL = logsDirectory.appendingPathComponent("session_\(newSessionId)_diagnostic.log")
+            
+            self.eventSequence = 0
+            
             // Get App version
-            let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.3.4"
+            let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.3.5"
             
             let metadata = SessionMetadata(
-                sessionId: self.sessionId,
+                sessionId: newSessionId,
                 startedAt: self.getISO8601Timestamp(),
                 sourceFile: sourceFile.isEmpty ? "none" : sourceFile,
                 ideTarget: ideTarget,
@@ -96,10 +149,22 @@ class ResponseLogger {
             )
             
             self.writeLine(metadata)
+            print("ResponseLogger: Started session \(newSessionId) at \(logsDirectory.path)")
         }
     }
     
-    func logKeystrokeEvent(physicalKeyCode: Int, physicalFlags: CGEventFlags, physicalChar: String?, injectedChunk: String, mode: String) {
+    func logKeystrokeEvent(
+        physicalKeyCode: Int,
+        physicalFlags: CGEventFlags,
+        physicalChar: String?,
+        injectedChunk: String,
+        mode: String,
+        sourceFile: String,
+        workspaceFolder: String,
+        targetFilePath: String,
+        cumulativeIndex: Int,
+        sourceTotal: Int
+    ) {
         logQueue.async { [weak self] in
             guard let self = self else { return }
             
@@ -155,14 +220,30 @@ class ResponseLogger {
                 physicalKey: physicalKey,
                 virtualOutput: virtualOutput,
                 chunkSize: injectedChunk.count,
-                mode: mode.lowercased()
+                mode: mode.lowercased(),
+                sourceFile: sourceFile,
+                workspaceFolder: workspaceFolder,
+                targetFilePath: targetFilePath,
+                cumulativeIndex: cumulativeIndex,
+                sourceTotal: sourceTotal
             )
             
             self.writeLine(event)
         }
     }
     
-    func logUndoEvent(physicalKeyCode: Int, physicalFlags: CGEventFlags, physicalChar: String?, undoneChunkSize: Int, undoneText: String) {
+    func logUndoEvent(
+        physicalKeyCode: Int,
+        physicalFlags: CGEventFlags,
+        physicalChar: String?,
+        undoneChunkSize: Int,
+        undoneText: String,
+        sourceFile: String,
+        workspaceFolder: String,
+        targetFilePath: String,
+        cumulativeIndex: Int,
+        sourceTotal: Int
+    ) {
         logQueue.async { [weak self] in
             guard let self = self else { return }
             
@@ -193,9 +274,41 @@ class ResponseLogger {
                 timestamp: self.getISO8601Timestamp(),
                 physicalKey: physicalKey,
                 undoneChunkSize: undoneChunkSize,
-                undoneText: undoneText
+                undoneText: undoneText,
+                sourceFile: sourceFile,
+                workspaceFolder: workspaceFolder,
+                targetFilePath: targetFilePath,
+                cumulativeIndex: cumulativeIndex,
+                sourceTotal: sourceTotal
             )
             
+            self.writeLine(event)
+        }
+    }
+    
+    func logAbortedEvent(
+        total: Int,
+        injected: Int,
+        sourceFile: String,
+        workspaceFolder: String,
+        targetFilePath: String,
+        cumulativeIndex: Int,
+        sourceTotal: Int
+    ) {
+        logQueue.async { [weak self] in
+            guard let self = self else { return }
+            let seq = self.nextSequence()
+            let event = AbortedEvent(
+                seq: seq,
+                timestamp: self.getISO8601Timestamp(),
+                total: total,
+                injected: injected,
+                sourceFile: sourceFile,
+                workspaceFolder: workspaceFolder,
+                targetFilePath: targetFilePath,
+                cumulativeIndex: cumulativeIndex,
+                sourceTotal: sourceTotal
+            )
             self.writeLine(event)
         }
     }

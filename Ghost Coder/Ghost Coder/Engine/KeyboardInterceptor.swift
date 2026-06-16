@@ -224,7 +224,12 @@ class KeyboardInterceptor {
                         physicalFlags: flags,
                         physicalChar: physicalChar,
                         undoneChunkSize: undone.count,
-                        undoneText: undone.text
+                        undoneText: undone.text,
+                        sourceFile: self.state.sourceFileName,
+                        workspaceFolder: self.state.workspaceFolderPath,
+                        targetFilePath: self.state.safeTargetFilePathValue,
+                        cumulativeIndex: self.state.safeCurrentIndexValue,
+                        sourceTotal: self.state.safeSourceLength
                     )
                     let entry = KeystrokeLogEntry(
                         id: seq,
@@ -276,7 +281,12 @@ class KeyboardInterceptor {
                 physicalFlags: flags,
                 physicalChar: physicalChar,
                 injectedChunk: chunk,
-                mode: self.state.safeInputMode.rawValue
+                mode: self.state.safeInputMode.rawValue,
+                sourceFile: self.state.sourceFileName,
+                workspaceFolder: self.state.workspaceFolderPath,
+                targetFilePath: self.state.safeTargetFilePathValue,
+                cumulativeIndex: self.state.safeCurrentIndexValue,
+                sourceTotal: self.state.safeSourceLength
             )
 
             // Build live UI keystroke log entry

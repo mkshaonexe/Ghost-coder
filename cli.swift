@@ -8,7 +8,7 @@
 import Foundation
 import Network
 
-let VERSION = "1.3.4"
+let VERSION = "1.3.5"
 let PORT: UInt16 = 52934
 
 // ANSI Color codes for premium terminal formatting
