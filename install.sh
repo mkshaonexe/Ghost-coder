@@ -79,31 +79,36 @@ CLI_SOURCE="${TARGET_APP}/Contents/MacOS/ghost-coder"
 CLI_TARGET="/usr/local/bin/ghost-coder"
 
 if [ -f "$CLI_SOURCE" ]; then
-  # Remove old symlink/file if exists
-  if [ -e "$CLI_TARGET" ] || [ -L "$CLI_TARGET" ]; then
-    if rm -f "$CLI_TARGET" 2>/dev/null; then
-      :
-    else
-      sudo rm -f "$CLI_TARGET"
-    fi
-  fi
-  
-  # Ensure /usr/local/bin exists
-  if [ ! -d "/usr/local/bin" ]; then
-    if mkdir -p "/usr/local/bin" 2>/dev/null; then
-      :
-    else
-      sudo mkdir -p "/usr/local/bin"
-    fi
-  fi
-
-  # Create symlink (so it points to the installed app)
-  if ln -s "$CLI_SOURCE" "$CLI_TARGET" 2>/dev/null; then
-    echo "  * Symlink created successfully: $CLI_TARGET -> $CLI_SOURCE"
+  # Check if symlink already exists and is correct
+  if [ -L "$CLI_TARGET" ] && [ "$(readlink "$CLI_TARGET")" = "$CLI_SOURCE" ]; then
+    echo "  * Symlink is already correct: $CLI_TARGET -> $CLI_SOURCE"
   else
-    echo "  * Privileges required to create symlink in /usr/local/bin. Requesting root permission..."
-    sudo ln -s "$CLI_SOURCE" "$CLI_TARGET"
-    echo "  * Symlink created."
+    # Remove old symlink/file if exists
+    if [ -e "$CLI_TARGET" ] || [ -L "$CLI_TARGET" ]; then
+      if rm -f "$CLI_TARGET" 2>/dev/null; then
+        :
+      else
+        sudo rm -f "$CLI_TARGET"
+      fi
+    fi
+    
+    # Ensure /usr/local/bin exists
+    if [ ! -d "/usr/local/bin" ]; then
+      if mkdir -p "/usr/local/bin" 2>/dev/null; then
+        :
+      else
+        sudo mkdir -p "/usr/local/bin"
+      fi
+    fi
+
+    # Create symlink (so it points to the installed app)
+    if ln -s "$CLI_SOURCE" "$CLI_TARGET" 2>/dev/null; then
+      echo "  * Symlink created successfully: $CLI_TARGET -> $CLI_SOURCE"
+    else
+      echo "  * Privileges required to create symlink in /usr/local/bin. Requesting root permission..."
+      sudo ln -s "$CLI_SOURCE" "$CLI_TARGET"
+      echo "  * Symlink created."
+    fi
   fi
   
   # Ensure executable permission
