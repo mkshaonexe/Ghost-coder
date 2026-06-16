@@ -119,6 +119,12 @@ fi
 # Clean up temp files
 rm -rf "$TEMP_DIR"
 
+# Reset macOS permission settings for Ghost Coder to prevent signature mismatch issues
+echo -e "  * Resetting macOS Accessibility and Input Monitoring permissions..."
+tccutil reset Accessibility Mkshaon7.Ghost-Coder 2>/dev/null || true
+tccutil reset ListenEvent Mkshaon7.Ghost-Coder 2>/dev/null || true
+tccutil reset PostEvent Mkshaon7.Ghost-Coder 2>/dev/null || true
+
 # Launch the Application
 echo -e "\n\033[1;32m=== Installation Complete! ===\033[0m"
 echo -e "Launching Ghost Coder...\n"

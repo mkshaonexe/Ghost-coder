@@ -79,3 +79,55 @@ gh release create "${TAG}" Ghost_Coder_macOS.zip Ghost_Coder_macOS.dmg \
   --notes "Ghost Coder ${TAG}: Production release with pure low-level keyboard interception and Unicode injection, removing the diff-based Hot-Fix engine for enhanced stability and direct input fidelity."
 
 echo "=== Release published successfully! ==="
+
+echo "=== Installing Local Build to /Applications ==="
+killall "Ghost Coder" || true
+
+TARGET_APP="/Applications/Ghost Coder.app"
+if rm -rf "$TARGET_APP" 2>/dev/null; then
+  :
+else
+  sudo rm -rf "$TARGET_APP"
+fi
+
+if cp -R "Ghost Coder/build/Release/Ghost Coder.app" "/Applications/" 2>/dev/null; then
+  :
+else
+  sudo cp -R "Ghost Coder/build/Release/Ghost Coder.app" "/Applications/"
+fi
+
+if xattr -cr "$TARGET_APP" 2>/dev/null; then
+  :
+else
+  sudo xattr -cr "$TARGET_APP"
+fi
+
+# Link CLI
+CLI_SOURCE="${TARGET_APP}/Contents/MacOS/ghost-coder"
+CLI_TARGET="/usr/local/bin/ghost-coder"
+if rm -f "$CLI_TARGET" 2>/dev/null; then
+  :
+else
+  sudo rm -f "$CLI_TARGET"
+fi
+
+if ln -s "$CLI_SOURCE" "$CLI_TARGET" 2>/dev/null; then
+  :
+else
+  sudo ln -s "$CLI_SOURCE" "$CLI_TARGET"
+fi
+
+if chmod +x "$CLI_TARGET" 2>/dev/null; then
+  :
+else
+  sudo chmod +x "$CLI_TARGET"
+fi
+
+# Reset TCC permissions
+echo "=== Resetting macOS Accessibility and Input Monitoring permissions ==="
+tccutil reset Accessibility Mkshaon7.Ghost-Coder 2>/dev/null || true
+tccutil reset ListenEvent Mkshaon7.Ghost-Coder 2>/dev/null || true
+tccutil reset PostEvent Mkshaon7.Ghost-Coder 2>/dev/null || true
+
+echo "=== Launching local Ghost Coder ==="
+open "$TARGET_APP"
