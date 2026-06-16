@@ -73,6 +73,6 @@ echo "=== Publishing to GitHub Releases ==="
 gh release delete "${TAG}" --yes || true
 gh release create "${TAG}" Ghost_Coder_macOS.zip Ghost_Coder_macOS.dmg \
   --title "${TAG} — Production Release" \
-  --notes "Ghost Coder v1.3.3: Premium build including Diff-Based Hot-Fix Engine (HotFixEngine) and CLI client version 1.3.3."
+  --notes "Ghost Coder ${TAG}: Production release with pure low-level keyboard interception and Unicode injection, removing the diff-based Hot-Fix engine for enhanced stability and direct input fidelity."
 
 echo "=== Release published successfully! ==="
