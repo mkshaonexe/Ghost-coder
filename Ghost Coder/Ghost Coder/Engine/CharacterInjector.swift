@@ -25,7 +25,11 @@ class CharacterInjector {
         let isMultiChar = chars.count > 1
 
         for char in chars {
-            injectUnicodeCharacter(char)
+            if char == "\n" {
+                injectVirtualKey(keyCode: 36)
+            } else {
+                injectUnicodeCharacter(char)
+            }
 
             if isMultiChar {
                 Thread.sleep(forTimeInterval: delaySeconds)
