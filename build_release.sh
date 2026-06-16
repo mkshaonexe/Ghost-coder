@@ -23,6 +23,9 @@ xcodebuild -project "Ghost Coder/Ghost Coder.xcodeproj" -scheme "Ghost Coder" -c
 echo "=== Compiling CLI tool ==="
 swiftc -O -o "Ghost Coder/build/Release/Ghost Coder.app/Contents/MacOS/ghost-coder" cli.swift
 
+echo "=== Re-signing App Bundle to prevent signature mismatch ==="
+codesign --force --deep --sign - "Ghost Coder/build/Release/Ghost Coder.app"
+
 echo "=== Packaging as ZIP ==="
 cd "Ghost Coder/build/Release"
 zip -r -y "../../../Ghost_Coder_macOS.zip" "Ghost Coder.app"
