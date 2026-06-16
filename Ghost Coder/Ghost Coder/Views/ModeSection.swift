@@ -33,6 +33,7 @@ struct ModeSection: View {
                     }
                 }
                 .pickerStyle(.segmented)
+                .disabled(state.isGhostModeEnabled)
                 
                 // Configurable typing delay (Word/Line modes only)
                 if state.inputMode != .character {

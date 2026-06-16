@@ -7,6 +7,7 @@
 
 import Foundation
 import Combine
+import ApplicationServices
 
 // MARK: - Keystroke Log Entry (displayed in UI)
 struct KeystrokeLogEntry: Identifiable {
@@ -122,6 +123,17 @@ class GhostState: ObservableObject {
     @Published var isGhostModeEnabled: Bool = false {
         didSet {
             if isGhostModeEnabled {
+                if !AXIsProcessTrusted() {
+                    log("Error: Accessibility permission not granted. Cannot activate Ghost Mode.")
+                    let options = [kAXTrustedCheckOptionPrompt.takeRetainedValue() as String: true] as CFDictionary
+                    AXIsProcessTrustedWithOptions(options)
+                    
+                    DispatchQueue.main.async {
+                        self.isGhostModeEnabled = false
+                        self.updateCachedActiveState()
+                    }
+                    return
+                }
                 VSCodeSettingsManager.shared.backupAndApplySettings(workspaceFolderPath: workspaceFolderPath) { [weak self] msg in
                     self?.log(msg)
                 }

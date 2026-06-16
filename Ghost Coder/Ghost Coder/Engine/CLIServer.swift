@@ -195,6 +195,9 @@ class CLIServer {
             }
             
         case "set-mode":
+            if state.isGhostModeEnabled {
+                return "Error: Cannot change input mode while Ghost Mode is active"
+            }
             let modeName = argument.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
             if modeName == "character" || modeName == "char" {
                 state.inputMode = .character
