@@ -429,6 +429,38 @@ class GhostState: ObservableObject {
         }
     }
 
+    func adjustIndexAfterAbortedInjection(total: Int, injected: Int) {
+        let diff = total - injected
+        guard diff > 0 else { return }
+
+        stateLock.lock()
+        safeCurrentIndex -= diff
+        if !safeInjectionHistory.isEmpty {
+            let lastVal = safeInjectionHistory.removeLast()
+            let newVal = lastVal - diff
+            if newVal > 0 {
+                safeInjectionHistory.append(newVal)
+            }
+        }
+        let newIndex = safeCurrentIndex
+        stateLock.unlock()
+
+        log("Aborted injection: only \(injected)/\(total) chars injected. Reverted pointer by \(diff) to \(newIndex)")
+
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            self.currentIndex = newIndex
+            if !self.injectionHistory.isEmpty {
+                let lastVal = self.injectionHistory.removeLast()
+                let newVal = lastVal - diff
+                if newVal > 0 {
+                    self.injectionHistory.append(newVal)
+                }
+            }
+            self.updateCachedActiveState()
+        }
+    }
+
     func popLastInjection() -> (count: Int, text: String)? {
         stateLock.lock()
         guard let count = safeInjectionHistory.popLast() else {

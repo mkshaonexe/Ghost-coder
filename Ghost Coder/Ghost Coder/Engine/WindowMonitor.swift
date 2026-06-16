@@ -99,8 +99,8 @@ class WindowMonitor {
         if let targetBundleID = state.ideTarget.bundleID {
             isFocused = frontApp.bundleIdentifier == targetBundleID
         } else {
-            // "Any Application" mode — always focused if something is frontmost
-            isFocused = true
+            // "Any Application" mode — always focused if something is frontmost, except our own app
+            isFocused = frontApp.bundleIdentifier != Bundle.main.bundleIdentifier
         }
 
         // 2. Fetch active window title and document URL using Accessibility APIs if trusted

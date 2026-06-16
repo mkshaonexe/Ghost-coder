@@ -19,21 +19,43 @@ class CharacterInjector {
 
     // MARK: - Inject a string of characters (runs on injectionQueue)
 
+    private func isTargetIDEActive() -> Bool {
+        guard let frontApp = NSWorkspace.shared.frontmostApplication else { return false }
+        if frontApp.bundleIdentifier == Bundle.main.bundleIdentifier {
+            return false // Never active if we are focused
+        }
+        if let targetBundleID = state.ideTarget.bundleID {
+            return frontApp.bundleIdentifier == targetBundleID
+        }
+        return true
+    }
+
     func injectString(_ text: String) {
         let delaySeconds = Double(state.safeDelayMs) / 1000.0
         let chars = Array(text)
         let isMultiChar = chars.count > 1
+        var injectedCount = 0
 
         for char in chars {
+            // Check synchronously if focus was lost during the injection sequence
+            guard isTargetIDEActive() else {
+                break
+            }
+
             if char == "\n" {
                 injectVirtualKey(keyCode: 36)
             } else {
                 injectUnicodeCharacter(char)
             }
+            injectedCount += 1
 
-            if isMultiChar {
+            if isMultiChar && injectedCount < chars.count {
                 Thread.sleep(forTimeInterval: delaySeconds)
             }
+        }
+
+        if injectedCount < chars.count {
+            state.adjustIndexAfterAbortedInjection(total: chars.count, injected: injectedCount)
         }
     }
 

@@ -151,6 +151,18 @@ class KeyboardInterceptor {
             return Unmanaged.passUnretained(event)  // pass through
         }
 
+        // Double check synchronously that the target IDE is indeed the active app
+        // to prevent race conditions during focus transitions.
+        if let frontApp = NSWorkspace.shared.frontmostApplication {
+            if frontApp.bundleIdentifier == Bundle.main.bundleIdentifier {
+                return Unmanaged.passUnretained(event) // Never intercept inside our own app
+            }
+            if let targetBundleID = state.ideTarget.bundleID,
+               frontApp.bundleIdentifier != targetBundleID {
+                return Unmanaged.passUnretained(event) // Frontmost app changed but cache is stale
+            }
+        }
+
         // Atomically check and claim the injection lock.
         // If we are already injecting, block incoming key silently.
         let wasInjecting = injectionLock.withLock { isInjecting in
