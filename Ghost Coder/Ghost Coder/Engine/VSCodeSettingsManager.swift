@@ -137,7 +137,13 @@ class VSCodeSettingsManager {
                 "editor.autoIndent",
                 "editor.formatOnType",
                 "editor.acceptSuggestionOnEnter",
-                "editor.acceptSuggestionOnCommitCharacter"
+                "editor.acceptSuggestionOnCommitCharacter",
+                "editor.quickSuggestions",
+                "editor.suggestOnTriggerCharacters",
+                "editor.tabCompletion",
+                "editor.wordBasedSuggestions",
+                "editor.parameterHints.enabled",
+                "editor.inlineSuggest.enabled"
             ]
             
             var allMatched = true
@@ -165,7 +171,13 @@ class VSCodeSettingsManager {
             "editor.autoIndent": "\"none\"",
             "editor.formatOnType": "false",
             "editor.acceptSuggestionOnEnter": "\"off\"",
-            "editor.acceptSuggestionOnCommitCharacter": "false"
+            "editor.acceptSuggestionOnCommitCharacter": "false",
+            "editor.quickSuggestions": "{\"other\": \"off\", \"comments\": \"off\", \"strings\": \"off\"}",
+            "editor.suggestOnTriggerCharacters": "false",
+            "editor.tabCompletion": "\"off\"",
+            "editor.wordBasedSuggestions": "\"off\"",
+            "editor.parameterHints.enabled": "false",
+            "editor.inlineSuggest.enabled": "false"
         ]
         
         for (key, value) in settingsToApply {
