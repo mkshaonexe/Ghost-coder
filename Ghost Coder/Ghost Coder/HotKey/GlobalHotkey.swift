@@ -54,10 +54,12 @@ class GlobalHotkey {
             self.state.updateCachedActiveState()
 
             if self.state.isGhostModeEnabled {
-                // Bug #8 fix: Delay hiding so IDE can receive focus before the first tap event.
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.20) {
-                    NSApp.windows.filter { $0.title == "Ghost Coder" || $0.identifier?.rawValue == "mainWindow" }
-                        .forEach { $0.orderOut(nil) }
+                if self.state.autoHideOnActivation {
+                    // Bug #8 fix: Delay hiding so IDE can receive focus before the first tap event.
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.20) {
+                        NSApp.windows.filter { $0.title == "Ghost Coder" || $0.identifier?.rawValue == "mainWindow" }
+                            .forEach { $0.orderOut(nil) }
+                    }
                 }
             } else {
                 // Show main window when Ghost Mode deactivates

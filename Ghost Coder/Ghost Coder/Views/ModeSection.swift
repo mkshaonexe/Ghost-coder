@@ -70,6 +70,21 @@ struct ModeSection: View {
                         .foregroundStyle(.white)
                 }
                 .toggleStyle(.switch)
+
+                Divider()
+                    .background(Color.white.opacity(0.12))
+
+                Toggle(isOn: $state.autoHideOnActivation) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Auto-Hide Window")
+                            .font(.body)
+                            .foregroundStyle(.white)
+                        Text("Automatically hide window on activation")
+                            .font(.system(size: 11, design: .rounded))
+                            .foregroundStyle(Color.white.opacity(0.5))
+                    }
+                }
+                .toggleStyle(.switch)
             }
             .padding(14)
             .background(.ultraThinMaterial)

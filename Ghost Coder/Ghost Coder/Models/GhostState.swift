@@ -164,6 +164,7 @@ class GhostState: ObservableObject {
             stateLock.unlock()
         }
     }
+    @Published var autoHideOnActivation: Bool = false
     @Published var frontmostAppName: String = "None"
     @Published var frontmostWindowMainTitle: String = "None"
     @Published var diagnosticLogs: [String] = []

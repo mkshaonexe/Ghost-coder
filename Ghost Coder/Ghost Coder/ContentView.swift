@@ -299,29 +299,56 @@ struct ContentView: View {
         let shadowColor = activationButtonShadowColor
         
         VStack(spacing: 12) {
-            Button(action: toggleGhostMode) {
-                buttonContent
+            HStack(spacing: 12) {
+                Button(action: toggleGhostMode) {
+                    buttonContent
+                }
+                .buttonStyle(.plain)
+                .background(
+                    LinearGradient(
+                        colors: isLoaded ? gradientColors : [Color.white.opacity(0.05), Color.white.opacity(0.05)],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    ),
+                    in: RoundedRectangle(cornerRadius: 20, style: .continuous)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .stroke(isLoaded ? Color.white.opacity(0.2) : Color.white.opacity(0.08), lineWidth: 1)
+                )
+                .shadow(
+                    color: shadowColor,
+                    radius: 14,
+                    x: 0,
+                    y: 6
+                )
+                .disabled(!isLoaded)
+
+                if state.isGhostModeEnabled {
+                    Button(action: {
+                        NSApp.windows
+                            .filter { $0.title == "Ghost Coder" || $0.identifier?.rawValue == "mainWindow" }
+                            .forEach { $0.orderOut(nil) }
+                    }) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "eye.slash.fill")
+                                .font(.system(size: 14, weight: .semibold))
+                            Text("Hide")
+                                .font(.system(size: 14, weight: .bold, design: .rounded))
+                        }
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 18)
+                        .frame(height: 52)
+                        .background(Color.white.opacity(0.1), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                                .stroke(Color.white.opacity(0.15), lineWidth: 1)
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .transition(.move(edge: .trailing).combined(with: .opacity))
+                }
             }
-            .buttonStyle(.plain)
-            .background(
-                LinearGradient(
-                    colors: isLoaded ? gradientColors : [Color.white.opacity(0.05), Color.white.opacity(0.05)],
-                    startPoint: .leading,
-                    endPoint: .trailing
-                ),
-                in: RoundedRectangle(cornerRadius: 20, style: .continuous)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .stroke(isLoaded ? Color.white.opacity(0.2) : Color.white.opacity(0.08), lineWidth: 1)
-            )
-            .shadow(
-                color: shadowColor,
-                radius: 14,
-                x: 0,
-                y: 6
-            )
-            .disabled(!isLoaded)
 
             HStack(spacing: 8) {
                 Image(systemName: "keyboard")
@@ -347,7 +374,7 @@ struct ContentView: View {
             // Bug #8 fix: Hide the window *after* a brief delay to allow the IDE
             // to receive focus and WindowMonitor to complete its first activation check.
             // This ensures the event tap is active before the first user keystroke.
-            if state.isGhostModeEnabled {
+            if state.isGhostModeEnabled && state.autoHideOnActivation {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.20) {
                     NSApp.windows
                         .filter { $0.title == "Ghost Coder" || $0.identifier?.rawValue == "mainWindow" }

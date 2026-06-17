@@ -50,8 +50,10 @@ struct MenuBarView: View {
         
         // Hide/show window accordingly
         if state.isGhostModeEnabled {
-            NSApp.windows.filter { $0.title == "Ghost Coder" || $0.identifier?.rawValue == "mainWindow" }
-                .forEach { $0.orderOut(nil) }
+            if state.autoHideOnActivation {
+                NSApp.windows.filter { $0.title == "Ghost Coder" || $0.identifier?.rawValue == "mainWindow" }
+                    .forEach { $0.orderOut(nil) }
+            }
         } else {
             showMainWindow()
         }
