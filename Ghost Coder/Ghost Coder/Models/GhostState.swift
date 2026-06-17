@@ -89,7 +89,7 @@ class GhostState: ObservableObject {
     @Published var workspaceFolderPath: String = "" {
         didSet {
             if isGhostModeEnabled {
-                VSCodeSettingsManager.shared.backupAndApplySettings(workspaceFolderPath: workspaceFolderPath) { [weak self] msg in
+                VSCodeSettingsManager.shared.backupAndApplySettings(workspaceFolderPath: workspaceFolderPath, isGitDiffMode: isGitDiffModeEnabled) { [weak self] msg in
                     self?.log(msg)
                 }
             }
@@ -134,7 +134,7 @@ class GhostState: ObservableObject {
                     }
                     return
                 }
-                VSCodeSettingsManager.shared.backupAndApplySettings(workspaceFolderPath: workspaceFolderPath) { [weak self] msg in
+                VSCodeSettingsManager.shared.backupAndApplySettings(workspaceFolderPath: workspaceFolderPath, isGitDiffMode: isGitDiffModeEnabled) { [weak self] msg in
                     self?.log(msg)
                 }
                 responseLogger?.startSession(
@@ -176,6 +176,29 @@ class GhostState: ObservableObject {
             stateLock.unlock()
         }
     }
+
+    // MARK: - Git Diff Mode State
+    @Published var isGitDiffModeEnabled: Bool = false {
+        didSet {
+            stateLock.lock()
+            _safeIsGitDiffModeEnabled = isGitDiffModeEnabled
+            stateLock.unlock()
+            updateCachedActiveState()
+            
+            if isGhostModeEnabled {
+                VSCodeSettingsManager.shared.backupAndApplySettings(workspaceFolderPath: workspaceFolderPath, isGitDiffMode: isGitDiffModeEnabled) { [weak self] msg in
+                    self?.log(msg)
+                }
+            }
+        }
+    }
+    @Published var gitRepoPath: String = ""
+    @Published var gitTargetFile: String = ""
+    @Published var gitCommits: [GitCommit] = []
+    @Published var gitCurrentStepIndex: Int = 0
+    @Published var gitDiffStepCount: Int = 0
+    
+    var gitDiffEngine: GitDiffEngine?
 
     func log(_ message: String) {
         let formatter = DateFormatter()
@@ -221,6 +244,7 @@ class GhostState: ObservableObject {
     private var safeInjectionDelayMs: Int = 12
     private var safeInjectionHistory: [Int] = []
     private var _safeEnableAutoCloseSkip: Bool = true
+    private var _safeIsGitDiffModeEnabled: Bool = false
 
 
 
@@ -257,6 +281,12 @@ class GhostState: ObservableObject {
     // MARK: - Cached active flag (read by CGEventTap callback — Bool is single-word, atomic on Apple Silicon)
     // Written exclusively on the main thread by WindowMonitor.
     private(set) var isActiveCached: Bool = false
+
+    var safeIsGitDiffModeEnabled: Bool {
+        stateLock.lock()
+        defer { stateLock.unlock() }
+        return _safeIsGitDiffModeEnabled
+    }
 
     // MARK: - Computed Properties
     var progress: Double {
@@ -343,9 +373,12 @@ class GhostState: ObservableObject {
     // MARK: - State Updates
     func updateCachedActiveState() {
         // Must be called on main thread (touches @Published properties + isActiveCached)
-        isActiveCached = isGhostModeEnabled
-            && isSourceLoaded
-            && currentIndex < sourceCode.count
+        let hasContent = isSourceLoaded || (isGitDiffModeEnabled && gitDiffEngine != nil)
+        let isNotDone = (currentIndex < sourceCode.count) || (isGitDiffModeEnabled && gitCurrentStepIndex < gitDiffStepCount)
+        
+        isActiveCached = (isGhostModeEnabled || isGitDiffModeEnabled)
+            && hasContent
+            && isNotDone
             && isIDEFocused
             && isFolderScopeActive
             && isAccessibilityGranted  // Cannot intercept without accessibility
@@ -408,8 +441,134 @@ class GhostState: ObservableObject {
 
         currentIndex = 0
         injectionHistory.removeAll()
+    }
 
+    // MARK: - Git Diff Mode Operations
 
+    func loadGitRepo(repoPath: String, targetFile: String) throws {
+        let engine = GitDiffEngine()
+        let commits = try engine.loadRepo(repoPath: repoPath, targetFile: targetFile)
+        
+        self.gitDiffEngine = engine
+        self.gitRepoPath = repoPath
+        self.gitTargetFile = targetFile
+        self.gitCommits = commits
+        self.gitDiffStepCount = max(0, commits.count - 1)
+        self.gitCurrentStepIndex = 0
+        
+        if commits.count > 1 {
+            engine.setupStep(fromIndex: 0, toIndex: 1)
+            
+            // Set base state as initial code for GhostState to treat as source (for progress calc)
+            let diffSource = engine.getAddedLinesString()
+            
+            stateLock.lock()
+            safeSourceCode = diffSource
+            safeCurrentIndex = 0
+            safeInjectionHistory.removeAll()
+            stateLock.unlock()
+            
+            self.sourceCode = diffSource
+            self.sourceFileName = targetFile
+            self.currentIndex = 0
+            self.injectionHistory.removeAll()
+        }
+        
+        updateCachedActiveState()
+    }
+
+    func advanceToNextGitStep() -> Bool {
+        guard let engine = gitDiffEngine else { return false }
+        
+        // Write the full target commit to disk to ensure perfectly formatted code at the end of step
+        let finalContent = engine.getFinalStateString()
+        let fullPath = URL(fileURLWithPath: gitRepoPath).appendingPathComponent(gitTargetFile)
+        do {
+            try finalContent.write(to: fullPath, atomically: true, encoding: .utf8)
+            log("GitDiff: Wrote final step \(gitCurrentStepIndex) content to \(gitTargetFile)")
+        } catch {
+            log("GitDiff Error writing final state: \(error)")
+        }
+        
+        if gitCurrentStepIndex + 1 < gitDiffStepCount {
+            // Setup next step
+            let nextIndex = gitCurrentStepIndex + 1
+            engine.setupStep(fromIndex: nextIndex, toIndex: nextIndex + 1)
+            
+            // Write new base state to disk immediately for next step
+            let baseState = engine.getBaseStateString()
+            do {
+                try baseState.write(to: fullPath, atomically: true, encoding: .utf8)
+                log("GitDiff: Wrote base state for step \(nextIndex) to \(gitTargetFile)")
+            } catch {
+                log("GitDiff Error writing base state: \(error)")
+            }
+            
+            let diffSource = engine.getAddedLinesString()
+            
+            stateLock.lock()
+            safeSourceCode = diffSource
+            safeCurrentIndex = 0
+            safeInjectionHistory.removeAll()
+            stateLock.unlock()
+            
+            DispatchQueue.main.async {
+                self.gitCurrentStepIndex = nextIndex
+                self.sourceCode = diffSource
+                self.currentIndex = 0
+                self.injectionHistory.removeAll()
+                self.updateCachedActiveState()
+            }
+            return true
+        } else {
+            // Finished all commits
+            DispatchQueue.main.async {
+                self.isGitDiffModeEnabled = false
+                self.updateCachedActiveState()
+            }
+            return false
+        }
+    }
+
+    func resetGitDiffMode() {
+        guard !gitRepoPath.isEmpty && !gitTargetFile.isEmpty else { return }
+        do {
+            try loadGitRepo(repoPath: gitRepoPath, targetFile: gitTargetFile)
+        } catch {
+            log("Failed to reset Git Diff Mode: \(error.localizedDescription)")
+        }
+    }
+
+    func jumpToGitStep(_ step: Int) -> Bool {
+        guard let engine = gitDiffEngine, step >= 0, step < gitDiffStepCount else { return false }
+        
+        engine.setupStep(fromIndex: step, toIndex: step + 1)
+        
+        let baseState = engine.getBaseStateString()
+        let fullPath = URL(fileURLWithPath: gitRepoPath).appendingPathComponent(gitTargetFile)
+        do {
+            try baseState.write(to: fullPath, atomically: true, encoding: .utf8)
+            log("GitDiff: Jumped to step \(step), wrote base state to \(gitTargetFile)")
+        } catch {
+            log("GitDiff Error writing base state: \(error)")
+        }
+        
+        let diffSource = engine.getAddedLinesString()
+        
+        stateLock.lock()
+        safeSourceCode = diffSource
+        safeCurrentIndex = 0
+        safeInjectionHistory.removeAll()
+        stateLock.unlock()
+        
+        DispatchQueue.main.async {
+            self.gitCurrentStepIndex = step
+            self.sourceCode = diffSource
+            self.currentIndex = 0
+            self.injectionHistory.removeAll()
+            self.updateCachedActiveState()
+        }
+        return true
     }
 
     // MARK: - Thread-safe State Modifiers (called from background/tap threads)

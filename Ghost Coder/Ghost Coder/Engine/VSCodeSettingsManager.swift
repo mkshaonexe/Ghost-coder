@@ -38,7 +38,7 @@ class VSCodeSettingsManager {
         return urls
     }
     
-    func backupAndApplySettings(workspaceFolderPath: String?, logHandler: ((String) -> Void)? = nil) {
+    func backupAndApplySettings(workspaceFolderPath: String?, isGitDiffMode: Bool = false, logHandler: ((String) -> Void)? = nil) {
         let urls = getSettingsURLs(workspaceFolderPath: workspaceFolderPath)
         
         for url in urls {
@@ -79,7 +79,7 @@ class VSCodeSettingsManager {
             }
             
             // Apply modifications
-            let modified = applyGhostSettings(to: content)
+            let modified = applyGhostSettings(to: content, isGitDiffMode: isGitDiffMode)
             do {
                 try modified.write(to: url, atomically: true, encoding: .utf8)
                 logHandler?("VSCodeSettingsManager: Applied Ghost settings to \(url.path)")
@@ -162,10 +162,10 @@ class VSCodeSettingsManager {
         return verifiedAtLeastOne
     }
     
-    private func applyGhostSettings(to jsonString: String) -> String {
+    private func applyGhostSettings(to jsonString: String, isGitDiffMode: Bool = false) -> String {
         var result = jsonString
         
-        let settingsToApply: [String: String] = [
+        var settingsToApply: [String: String] = [
             "editor.autoClosingBrackets": "\"never\"",
             "editor.autoClosingQuotes": "\"never\"",
             "editor.autoIndent": "\"none\"",
@@ -179,6 +179,14 @@ class VSCodeSettingsManager {
             "editor.parameterHints.enabled": "false",
             "editor.inlineSuggest.enabled": "false"
         ]
+        
+        if isGitDiffMode {
+            settingsToApply["files.autoSave"] = "\"afterDelay\""
+            settingsToApply["files.autoSaveDelay"] = "100"
+            settingsToApply["dart.flutterHotReloadOnSave"] = "\"allIfDirty\""
+            settingsToApply["editor.formatOnSave"] = "false"
+            settingsToApply["dart.previewFlutterUiGuides"] = "true"
+        }
         
         for (key, value) in settingsToApply {
             let pattern = "\"\(key)\"\\s*:\\s*[^,\\s}]+"

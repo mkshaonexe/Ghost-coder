@@ -263,10 +263,25 @@ class KeyboardInterceptor {
         // --- Rule 5: Normal typing key → atomically claim the next chunk and inject ---
         // getAndAdvanceNextChunk is atomic: both the read and advance happen under one lock.
         // This prevents a second keypress from stealing the same chunk before we advance.
-        let chunk = state.getAndAdvanceNextChunk()
-        guard !chunk.isEmpty else {
-            isInjecting = false
-            return Unmanaged.passUnretained(event)  // Source exhausted; pass through
+        var chunk = state.getAndAdvanceNextChunk()
+        
+        if chunk.isEmpty {
+            if state.safeIsGitDiffModeEnabled {
+                let hasMore = state.advanceToNextGitStep()
+                if hasMore {
+                    chunk = state.getAndAdvanceNextChunk()
+                    if chunk.isEmpty {
+                        isInjecting = false
+                        return Unmanaged.passUnretained(event)
+                    }
+                } else {
+                    isInjecting = false
+                    return Unmanaged.passUnretained(event)
+                }
+            } else {
+                isInjecting = false
+                return Unmanaged.passUnretained(event)
+            }
         }
 
         let physicalChar = event.getUnicodeString()

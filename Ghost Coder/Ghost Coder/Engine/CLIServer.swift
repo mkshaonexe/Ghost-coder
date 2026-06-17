@@ -253,7 +253,70 @@ class CLIServer {
             state.diagnosticLogs.removeAll()
             state.log("Logs cleared via CLI")
             return "Success: Logs cleared"
+
+        case "git-diff-load":
+            let args = argument.components(separatedBy: " ")
+            guard args.count >= 2 else {
+                return "Error: expected repoPath and targetFile"
+            }
+            let repoPath = args[0]
+            let targetFile = args.dropFirst().joined(separator: " ")
+            do {
+                try state.loadGitRepo(repoPath: repoPath, targetFile: targetFile)
+                return "Success: Loaded git repo with \(state.gitCommits.count) commits."
+            } catch {
+                return "Error: \(error.localizedDescription)"
+            }
             
+        case "git-diff-status":
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = .prettyPrinted
+            struct GitDiffStatus: Codable {
+                let isEnabled: Bool
+                let repoPath: String
+                let targetFile: String
+                let commitsCount: Int
+                let currentStep: Int
+                let totalSteps: Int
+            }
+            let status = GitDiffStatus(
+                isEnabled: state.isGitDiffModeEnabled,
+                repoPath: state.gitRepoPath,
+                targetFile: state.gitTargetFile,
+                commitsCount: state.gitCommits.count,
+                currentStep: state.gitCurrentStepIndex,
+                totalSteps: state.gitDiffStepCount
+            )
+            if let data = try? encoder.encode(status), let json = String(data: data, encoding: .utf8) {
+                return json
+            }
+            return "Error encoding git diff status"
+            
+        case "git-diff-enable":
+            if state.gitCommits.isEmpty {
+                return "Error: No git repo loaded"
+            }
+            state.isGitDiffModeEnabled = true
+            return "Success: Git Diff Mode enabled"
+            
+        case "git-diff-disable":
+            state.isGitDiffModeEnabled = false
+            return "Success: Git Diff Mode disabled"
+            
+        case "git-diff-reset":
+            state.resetGitDiffMode()
+            return "Success: Git Diff Mode reset"
+            
+        case "git-diff-step":
+            guard let step = Int(argument.trimmingCharacters(in: .whitespacesAndNewlines)) else {
+                return "Error: step index must be an integer"
+            }
+            if state.jumpToGitStep(step) {
+                return "Success: Jumped to step \(step)"
+            } else {
+                return "Error: Invalid step index"
+            }
+
         default:
             return "Error: Unknown action '\(action)'"
         }

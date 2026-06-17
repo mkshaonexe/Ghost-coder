@@ -55,21 +55,42 @@ struct ProgressSection: View {
                 }
                 
                 HStack {
-                    Text("\(state.currentIndex) / \(state.completionCount) characters")
-                        .font(.subheadline)
-                        .foregroundStyle(.white)
+                    if state.isGitDiffModeEnabled {
+                        Text("Step \(state.gitCurrentStepIndex) / \(state.gitDiffStepCount) commits")
+                            .font(.subheadline)
+                            .foregroundStyle(.white)
+                    } else {
+                        Text("\(state.currentIndex) / \(state.completionCount) characters")
+                            .font(.subheadline)
+                            .foregroundStyle(.white)
+                    }
                     
                     Spacer()
                     
-                    if state.remainingCharCount > 0 {
-                        Text("\(state.remainingCharCount) remaining")
-                            .font(.caption)
-                            .foregroundStyle(Color.white.opacity(0.66))
+                    if state.isGitDiffModeEnabled {
+                        if state.gitCurrentStepIndex + 1 < state.gitCommits.count {
+                            Text(state.gitCommits[state.gitCurrentStepIndex + 1].message)
+                                .font(.caption)
+                                .foregroundStyle(Color.white.opacity(0.66))
+                                .lineLimit(1)
+                                .truncationMode(.tail)
+                        } else {
+                            Text("Completed")
+                                .font(.caption)
+                                .fontWeight(.bold)
+                                .foregroundStyle(Color.green)
+                        }
                     } else {
-                        Text("Completed")
-                            .font(.caption)
-                            .fontWeight(.bold)
-                            .foregroundStyle(Color.green)
+                        if state.remainingCharCount > 0 {
+                            Text("\(state.remainingCharCount) remaining")
+                                .font(.caption)
+                                .foregroundStyle(Color.white.opacity(0.66))
+                        } else {
+                            Text("Completed")
+                                .font(.caption)
+                                .fontWeight(.bold)
+                                .foregroundStyle(Color.green)
+                        }
                     }
                 }
             }
