@@ -13,12 +13,39 @@ class VSCodeSettingsManager {
     private let fileManager = FileManager.default
     private var originalContents: [URL: String] = [:]
     
+    private func findWorkspaceRoot(from path: String) -> String {
+        var currentURL = URL(fileURLWithPath: path)
+        let fileManager = FileManager.default
+        
+        var isDir: ObjCBool = false
+        if fileManager.fileExists(atPath: currentURL.path, isDirectory: &isDir) && !isDir.boolValue {
+            currentURL = currentURL.deletingLastPathComponent()
+        } else if !fileManager.fileExists(atPath: currentURL.path) && !currentURL.pathExtension.isEmpty {
+            currentURL = currentURL.deletingLastPathComponent()
+        }
+        
+        let initialURL = currentURL
+        
+        while currentURL.path != "/" && currentURL.path.count > 1 {
+            if fileManager.fileExists(atPath: currentURL.appendingPathComponent(".git").path) ||
+               fileManager.fileExists(atPath: currentURL.appendingPathComponent(".vscode").path) ||
+               fileManager.fileExists(atPath: currentURL.appendingPathComponent("pubspec.yaml").path) ||
+               fileManager.fileExists(atPath: currentURL.appendingPathComponent("package.json").path) {
+                return currentURL.path
+            }
+            currentURL = currentURL.deletingLastPathComponent()
+        }
+        
+        return initialURL.path
+    }
+    
     private func getSettingsURLs(workspaceFolderPath: String?) -> [URL] {
         var urls: [URL] = []
         
         // 1. Workspace settings (if workspace folder is specified)
         if let wsPath = workspaceFolderPath, !wsPath.isEmpty {
-            let wsURL = URL(fileURLWithPath: wsPath)
+            let rootPath = findWorkspaceRoot(from: wsPath)
+            let wsURL = URL(fileURLWithPath: rootPath)
                 .appendingPathComponent(".vscode")
                 .appendingPathComponent("settings.json")
             urls.append(wsURL)
@@ -189,7 +216,7 @@ class VSCodeSettingsManager {
         }
         
         for (key, value) in settingsToApply {
-            let pattern = "\"\(key)\"\\s*:\\s*[^,\\s}]+"
+            let pattern = "\"\(key)\"\\s*:\\s*(?:\\{[^}]*\\}|\\[[^\\]]*\\]|\"[^\"]*\"|[^,\\s}]+)"
             let newSetting = "\"\(key)\": \(value)"
             
             let range = NSRange(result.startIndex..<result.endIndex, in: result)

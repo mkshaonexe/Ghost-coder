@@ -122,6 +122,9 @@ class GitDiffEngine {
         }
         
         addedLinesString = addedLinesList.joined(separator: "\n")
+        if !addedLinesString.isEmpty {
+            addedLinesString += "\n"
+        }
         currentStepIndex = fromIndex
     }
     
