@@ -87,40 +87,35 @@ TARGET_APP="/Applications/Ghost Coder.app"
 if rm -rf "$TARGET_APP" 2>/dev/null; then
   :
 else
-  sudo rm -rf "$TARGET_APP"
+  sudo -n rm -rf "$TARGET_APP" || echo "Warning: Could not remove $TARGET_APP"
 fi
 
 if cp -R "Ghost Coder/build/Release/Ghost Coder.app" "/Applications/" 2>/dev/null; then
   :
 else
-  sudo cp -R "Ghost Coder/build/Release/Ghost Coder.app" "/Applications/"
+  sudo -n cp -R "Ghost Coder/build/Release/Ghost Coder.app" "/Applications/" || echo "Warning: Could not copy to /Applications"
 fi
 
 if xattr -cr "$TARGET_APP" 2>/dev/null; then
   :
 else
-  sudo xattr -cr "$TARGET_APP"
+  sudo -n xattr -cr "$TARGET_APP" || echo "Warning: Could not clear quarantine attributes on $TARGET_APP"
 fi
 
 # Link CLI
 CLI_SOURCE="${TARGET_APP}/Contents/MacOS/ghost-coder"
 CLI_TARGET="/usr/local/bin/ghost-coder"
-if rm -f "$CLI_TARGET" 2>/dev/null; then
-  :
-else
-  sudo rm -f "$CLI_TARGET"
-fi
 
-if ln -s "$CLI_SOURCE" "$CLI_TARGET" 2>/dev/null; then
-  :
+if [ -L "$CLI_TARGET" ] && [ "$(readlink "$CLI_TARGET")" = "$CLI_SOURCE" ]; then
+  echo "=== Symlink is already correct: $CLI_TARGET -> $CLI_SOURCE ==="
 else
-  sudo ln -s "$CLI_SOURCE" "$CLI_TARGET"
-fi
-
-if chmod +x "$CLI_TARGET" 2>/dev/null; then
-  :
-else
-  sudo chmod +x "$CLI_TARGET"
+  echo "=== Creating symlink $CLI_TARGET -> $CLI_SOURCE ==="
+  if rm -f "$CLI_TARGET" 2>/dev/null && ln -s "$CLI_SOURCE" "$CLI_TARGET" 2>/dev/null && chmod +x "$CLI_TARGET" 2>/dev/null; then
+    echo "=== Symlink created successfully without sudo ==="
+  else
+    echo "=== Failed to create symlink without sudo. Please run the following command manually if needed: ==="
+    echo "    sudo rm -f \"$CLI_TARGET\" && sudo ln -s \"$CLI_SOURCE\" \"$CLI_TARGET\" && sudo chmod +x \"$CLI_TARGET\""
+  fi
 fi
 
 # Reset TCC permissions
@@ -131,3 +126,4 @@ tccutil reset PostEvent Mkshaon7.Ghost-Coder 2>/dev/null || true
 
 echo "=== Launching local Ghost Coder ==="
 open "$TARGET_APP"
+
