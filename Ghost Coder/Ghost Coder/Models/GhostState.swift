@@ -483,10 +483,14 @@ class GhostState: ObservableObject {
         
         // Write the full target commit to disk to ensure perfectly formatted code at the end of step
         let finalContent = engine.getFinalStateString()
-        let fullPath = URL(fileURLWithPath: gitRepoPath).appendingPathComponent(gitTargetFile)
+        let targetPathStr = safeTargetFilePathValue.isEmpty ? gitTargetFile : safeTargetFilePathValue
+        let fullPath = safeTargetFilePathValue.isEmpty 
+            ? URL(fileURLWithPath: gitRepoPath).appendingPathComponent(gitTargetFile)
+            : URL(fileURLWithPath: safeTargetFilePathValue)
+            
         do {
             try finalContent.write(to: fullPath, atomically: true, encoding: .utf8)
-            log("GitDiff: Wrote final step \(gitCurrentStepIndex) content to \(gitTargetFile)")
+            log("GitDiff: Wrote final step \(gitCurrentStepIndex) content to \(fullPath.lastPathComponent)")
         } catch {
             log("GitDiff Error writing final state: \(error)")
         }
@@ -500,7 +504,7 @@ class GhostState: ObservableObject {
             let baseState = engine.getBaseStateString()
             do {
                 try baseState.write(to: fullPath, atomically: true, encoding: .utf8)
-                log("GitDiff: Wrote base state for step \(nextIndex) to \(gitTargetFile)")
+                log("GitDiff: Wrote base state for step \(nextIndex) to \(fullPath.lastPathComponent)")
             } catch {
                 log("GitDiff Error writing base state: \(error)")
             }
@@ -546,10 +550,13 @@ class GhostState: ObservableObject {
         engine.setupStep(fromIndex: step, toIndex: step + 1)
         
         let baseState = engine.getBaseStateString()
-        let fullPath = URL(fileURLWithPath: gitRepoPath).appendingPathComponent(gitTargetFile)
+        let fullPath = safeTargetFilePathValue.isEmpty 
+            ? URL(fileURLWithPath: gitRepoPath).appendingPathComponent(gitTargetFile)
+            : URL(fileURLWithPath: safeTargetFilePathValue)
+            
         do {
             try baseState.write(to: fullPath, atomically: true, encoding: .utf8)
-            log("GitDiff: Jumped to step \(step), wrote base state to \(gitTargetFile)")
+            log("GitDiff: Jumped to step \(step), wrote base state to \(fullPath.lastPathComponent)")
         } catch {
             log("GitDiff Error writing base state: \(error)")
         }
