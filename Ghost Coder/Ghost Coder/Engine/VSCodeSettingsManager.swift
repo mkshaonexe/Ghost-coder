@@ -219,11 +219,17 @@ class VSCodeSettingsManager {
             let pattern = "\"\(key)\"\\s*:\\s*(?:\\{[^}]*\\}|\\[[^\\]]*\\]|\"[^\"]*\"|[^,\\s}]+)"
             let newSetting = "\"\(key)\": \(value)"
             
-            let range = NSRange(result.startIndex..<result.endIndex, in: result)
             if let regex = try? NSRegularExpression(pattern: pattern) {
-                let matches = regex.matches(in: result, options: [], range: range)
+                let mutable = NSMutableString(string: result)
+                let fullRange = NSRange(result.startIndex..<result.endIndex, in: result)
+                let matches = regex.matches(in: result, options: [], range: fullRange)
+                
                 if !matches.isEmpty {
-                    result = result.replacingOccurrences(of: pattern, with: newSetting, options: .regularExpression)
+                    // Replace in reverse order to preserve NSRange validity
+                    for match in matches.reversed() {
+                        mutable.replaceCharacters(in: match.range, with: newSetting)
+                    }
+                    result = mutable as String
                 } else {
                     if let lastBraceIndex = result.lastIndex(of: "}") {
                         var insertIndex = lastBraceIndex
